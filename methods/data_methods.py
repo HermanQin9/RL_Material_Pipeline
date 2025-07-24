@@ -68,14 +68,27 @@ def split_by_fe(df: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame]:
     return train_df, test_df
 
 
+def safe_featurize(feat_obj, x):
+    """安全的特征化函数，处理可能的错误"""
+    if x is None:
+        return [np.nan] * len(feat_obj.feature_labels())
+    try:
+        return feat_obj.featurize(x)
+    except (TypeError, ValueError, AttributeError) as e:
+        # 当遇到 NoneType 错误或其他特征化错误时，返回 NaN
+        logger.warning(f"Featurization failed for {type(feat_obj).__name__}: {str(e)[:100]}")
+        return [np.nan] * len(feat_obj.feature_labels())
+
 def apply_featurizers(df: pd.DataFrame) -> pd.DataFrame:
     """对 DataFrame 批量应用 featurizers 并拼接结果"""
     parts: list[pd.DataFrame] = [df]
     for feat_obj, col in FEATURE_METHODS:
         labels = feat_obj.feature_labels()
-        # 使用 joblib 并行处理每个 featurizer
-        array = Parallel(n_jobs=-1)(delayed(lambda x: feat_obj.featurize(x) if x is not None else [np.nan] * len(labels))(v) for v in df[col])
+        logger.info(f"Applying {type(feat_obj).__name__} to column '{col}' ({len(df)} samples)")
+        # 使用安全的特征化函数
+        array = Parallel(n_jobs=-1)(delayed(safe_featurize)(feat_obj, v) for v in df[col])
         parts.append(pd.DataFrame(array, columns=labels)) # type: ignore
+        logger.info(f"  Generated {len(labels)} features")
     return pd.concat(parts, axis=1)
 
 # Node 0: 获取数据、特征化并划分训练/测试集

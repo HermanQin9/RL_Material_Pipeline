@@ -4,7 +4,7 @@ __pycache__/
 *$py.class
 *.so
 .Python
-env/
+# env/ - commented out to allow our project env/ directory
 venv/
 ENV/
 env.bak/
