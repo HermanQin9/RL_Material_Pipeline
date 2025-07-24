@@ -6,7 +6,7 @@ from nodes import DataFetchNode, ImputeNode, FeatureMatrixNode, FeatureSelection
 from config import PROC_DIR, MODEL_DIR, LOG_DIR, TARGET_PROP
 from methods.data_methods import prepare_node_input, validate_state_keys, split_labels, update_state
 from methods.model_methods import compute_metrics_and_sizes, print_results, save_pipeline_outputs
-# from pipeline_utils import PipelineAPI  # Moved to avoid circular import
+# from utils.pipeline_utils import PipelineAPI  # Moved to avoid circular import
 import logging
 from pathlib import Path
 import time

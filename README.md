@@ -11,7 +11,7 @@ This project implements a Reinforcement Learning (RL)-based automated Machine Le
 ```
 .
 ├── config.py            # Global configuration (paths, API keys, hyperparameters)
-├── node.py              # Node base class and all node implementations
+├── nodes.py             # Node base class and all node implementations
 ├── pipeline.py          # Main pipeline (run_pipeline)
 ├── methods/             # Data and model methods
 │   ├── data_methods.py  # Data processing functions
@@ -27,19 +27,38 @@ This project implements a Reinforcement Learning (RL)-based automated Machine Le
 │   ├── utils.py         # Utility functions (GAE, loss calculation)
 │   └── trainer.py       # Training loop and optimization logic
 ├── scripts/             # Command-line scripts
-│   ├── execute_ppo.py   # Combined training and evaluation script
-│   └── eval_ppo.py      # Policy evaluation script
+│   ├── train_ppo.py     # PPO training script
+│   ├── eval_ppo.py      # Policy evaluation script
+│   ├── example_usage.py # Example usage demonstration
+│   └── debug_pipeline.py # Pipeline debugging utilities
+├── tests/               # Unit tests
+│   ├── test_all_files.py
+│   ├── test_all_models.py
+│   ├── test_and_train_ppo.py
+│   ├── test_components.py
+│   ├── test_pipeline.py
+│   ├── test_ppo.py
+│   └── test_data_methods.py
+├── utils/               # Utility functions
+│   └── pipeline_utils.py # Pipeline utilities
+├── notebooks/           # Jupyter notebooks
+│   ├── PPO_Testing_and_Debugging.ipynb
+│   └── _setup.ipynb
+├── docs/                # Documentation files
+│   ├── COMPLIANCE_ANALYSIS.md
+│   ├── IMPORT_FIX_REPORT.md
+│   ├── PROJECT_ORGANIZATION.md
+│   ├── STATUS_REPORT.md
+│   ├── STATUS_UPDATE.md
+│   ├── TESTING_REPORT.md
+│   └── VALIDATION_SUMMARY.md
 ├── data/                # Data storage
 │   ├── raw/             # Original datasets
 │   └── processed/       # Processed datasets
 ├── models/              # Trained model checkpoints cache
 ├── logs/                # Training and evaluation logs
-├── dash_app/            # Visualization dashboard application
-│   └── data/            # Dashboard-specific data
-└── tests/               # Unit tests
-    ├── test_env.py
-    ├── test_ppo.py
-    └── test_data_methods.py
+└── dash_app/            # Visualization dashboard application
+    └── data/            # Dashboard-specific data
 ```
 
 ## Key Components
@@ -86,16 +105,21 @@ pip install -r requirements.txt
 ### Training PPO
 
 ```bash
-python train_ppo.py
+python scripts/train_ppo.py
+```
+
+### Example Usage
+
+```bash
+python scripts/example_usage.py
 ```
 
 ### Evaluation
 
-Run the included notebooks:
+Run the included notebooks in the `notebooks/` directory:
 
-* `testing_pipeline.ipynb`
-* `testing_env.ipynb`
-* `testing_train_ppo.ipynb`
+* `PPO_Testing_and_Debugging.ipynb`
+* `_setup.ipynb`
 
 ### Visualization (Hasn't been built)
 

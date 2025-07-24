@@ -120,7 +120,6 @@ Thumbs.db
 # Data files (you may want to keep some)
 *.csv
 *.pkl
-*.joblib
 
 # Models (comment out if you want to track models)
 models/*.joblib
@@ -128,3 +127,10 @@ models/*.joblib
 # Logs
 logs/
 *.log
+
+# Notebooks output
+notebooks/*.nbconvert.py
+notebooks/*_checkpoint.ipynb
+
+# Documentation builds
+docs/_build/
