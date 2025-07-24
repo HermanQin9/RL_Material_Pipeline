@@ -30,12 +30,25 @@ class PPOPolicy(nn.Module):
             nn.ReLU()
         )
         
-        # Policy head (actor)
-        self.policy_head = nn.Sequential(
+        # Node selection head
+        self.node_head = nn.Sequential(
             nn.Linear(hidden_dim//2, hidden_dim//4),
             nn.ReLU(),
-            nn.Linear(hidden_dim//4, action_dim),
-            nn.Softmax(dim=-1)
+            nn.Linear(hidden_dim//4, 6)  # 6 nodes: N0-N5
+        )
+        
+        # Method selection head  
+        self.method_head = nn.Sequential(
+            nn.Linear(hidden_dim//2, hidden_dim//4),
+            nn.ReLU(),
+            nn.Linear(hidden_dim//4, 10)  # Max methods across all nodes
+        )
+        
+        # Parameter head
+        self.param_head = nn.Sequential(
+            nn.Linear(hidden_dim//2, hidden_dim//4),
+            nn.ReLU(),
+            nn.Linear(hidden_dim//4, 1)  # Single parameter value
         )
         
         # Value head (critic)
@@ -45,79 +58,47 @@ class PPOPolicy(nn.Module):
             nn.Linear(hidden_dim//4, 1)
         )
         
-    def forward(self, obs: torch.Tensor, action_mask: Optional[torch.Tensor] = None) -> Tuple[torch.Tensor, torch.Tensor]:
+    def forward(self, obs, action_mask: Optional[torch.Tensor] = None) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
         """
         Forward pass through the network
         
         Args:
-            obs: Observation tensor
+            obs: Observation (dict or tensor)
             action_mask: Optional action mask for invalid actions
             
         Returns:
-            action_probs: Action probabilities
-            state_value: State value estimate
+            node_logits: Node selection logits
+            method_logits: Method selection logits  
+            params: Parameter values
+            value: State value estimate
         """
-        features = self.shared_layers(obs)
-        
-        # Get action probabilities
-        action_logits = self.policy_head(features)
-        
-        # Apply action mask if provided
-        if action_mask is not None:
-            action_logits = action_logits + (action_mask - 1) * 1e8
+        # Handle dict observation format
+        if isinstance(obs, dict):
+            # Flatten dictionary observation to tensor
+            fingerprint = torch.FloatTensor(obs['fingerprint']) if isinstance(obs['fingerprint'], np.ndarray) else obs['fingerprint']
+            node_visited = torch.FloatTensor(obs['node_visited']) if isinstance(obs['node_visited'], np.ndarray) else obs['node_visited']
+            action_mask_tensor = torch.FloatTensor(obs['action_mask']) if isinstance(obs['action_mask'], np.ndarray) else obs['action_mask']
             
-        action_probs = F.softmax(action_logits, dim=-1)
+            # Concatenate all features
+            obs_tensor = torch.cat([fingerprint, node_visited, action_mask_tensor])
+        else:
+            obs_tensor = obs
+        
+        features = self.shared_layers(obs_tensor)
+        
+        # Get node selection logits
+        node_logits = self.node_head(features)
+        
+        # Get method selection logits (simplified - select from all methods)
+        method_logits = self.method_head(features)
+        
+        # Get parameters (simplified - single parameter value)
+        params = torch.sigmoid(self.param_head(features))
         
         # Get state value
-        state_value = self.value_head(features)
+        value = self.value_head(features)
         
-        return action_probs, state_value
-        
-    def get_action(self, obs: torch.Tensor, action_mask: Optional[torch.Tensor] = None) -> Tuple[int, float, torch.Tensor]:
-        """
-        Sample action from policy
-        
-        Args:
-            obs: Observation tensor
-            action_mask: Optional action mask
-            
-        Returns:
-            action: Sampled action
-            log_prob: Log probability of action
-            state_value: State value estimate
-        """
-        with torch.no_grad():
-            action_probs, state_value = self.forward(obs, action_mask)
-            
-            # Create distribution and sample
-            dist = torch.distributions.Categorical(action_probs)
-            action = dist.sample()
-            log_prob = dist.log_prob(action)
-            
-            return int(action.item()), float(log_prob.item()), state_value.squeeze()
-            
-    def evaluate_actions(self, obs: torch.Tensor, actions: torch.Tensor, 
-                        action_mask: Optional[torch.Tensor] = None) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-        """
-        Evaluate actions for training
-        
-        Args:
-            obs: Observation tensor
-            actions: Actions taken
-            action_mask: Optional action mask
-            
-        Returns:
-            log_probs: Log probabilities of actions
-            state_values: State value estimates
-            entropy: Policy entropy
-        """
-        action_probs, state_values = self.forward(obs, action_mask)
-        
-        # Create distribution
-        dist = torch.distributions.Categorical(action_probs)
-        
-        # Get log probabilities and entropy
-        log_probs = dist.log_prob(actions)
-        entropy = dist.entropy()
-        
-        return log_probs, state_values.squeeze(), entropy
+        return node_logits, method_logits, params, value
+
+    # Note: The following methods are not currently used by the trainer
+    # They would need to be updated to work with the new 4-output forward method

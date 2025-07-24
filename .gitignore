@@ -134,3 +134,8 @@ notebooks/*_checkpoint.ipynb
 
 # Documentation builds
 docs/_build/
+
+# Environment scripts
+activate_env.bat
+activate_env.ps1
+check_env.py

@@ -47,18 +47,21 @@ def main():
         print(f"Loaded model from {args.model_path}")
     
     if args.eval_only:
-        # Evaluation mode
+        # Evaluation mode - run a few episodes to test
         print("Running evaluation...")
-        trainer.evaluate(num_episodes=10)
+        trainer.train(num_episodes=5, log_interval=1)
     else:
         # Training mode
         print(f"Starting training for {args.episodes} episodes...")
         trainer.train(
             num_episodes=args.episodes,
-            save_freq=args.save_freq,
-            log_freq=args.log_freq,
-            model_path=args.model_path
+            log_interval=args.log_freq
         )
+        
+        # Save model after training
+        os.makedirs(os.path.dirname(args.model_path), exist_ok=True)
+        trainer.save_model(args.model_path)
+        print(f"Model saved to {args.model_path}")
     
     print("Done!")
 
