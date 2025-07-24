@@ -30,15 +30,31 @@ This project implements a Reinforcement Learning (RL)-based automated Machine Le
 │   ├── train_ppo.py     # PPO training script
 │   ├── eval_ppo.py      # Policy evaluation script
 │   ├── example_usage.py # Example usage demonstration
-│   └── debug_pipeline.py # Pipeline debugging utilities
-├── tests/               # Unit tests
+│   ├── debug_pipeline.py # Pipeline debugging utilities
+│   ├── train_ppo_4k.py  # 4K dataset PPO training
+│   ├── train_ppo_safe.py # Safe PPO training with error handling
+│   ├── generate_4k_data.py # 4K dataset generation
+│   ├── fix_4k_data.py   # Data fixing utilities
+│   ├── main.py          # Main execution script
+│   ├── run.py           # Alternative run script
+│   ├── analysis/        # Analysis and visualization scripts
+│   │   ├── analyze_ppo_results.py # PPO results analysis
+│   │   └── reward_analysis.py     # Reward function analysis
+│   └── debug/           # Debugging utilities
+│       └── check_training_mode.py # Training mode checker
+├── tests/               # Unit tests and validation scripts
 │   ├── test_all_files.py
 │   ├── test_all_models.py
 │   ├── test_and_train_ppo.py
 │   ├── test_components.py
 │   ├── test_pipeline.py
 │   ├── test_ppo.py
-│   └── test_data_methods.py
+│   ├── test_data_methods.py
+│   ├── test_4k_data.py  # 4K dataset testing
+│   ├── test_ppo_simple.py # Simple PPO testing
+│   ├── validate_ppo_training.py # PPO training validation
+│   ├── extended_ppo_validation.py # Extended validation
+│   └── simplified_ppo_validation.py # Simplified validation
 ├── utils/               # Utility functions
 │   └── pipeline_utils.py # Pipeline utilities
 ├── notebooks/           # Jupyter notebooks
@@ -51,7 +67,9 @@ This project implements a Reinforcement Learning (RL)-based automated Machine Le
 │   ├── STATUS_REPORT.md
 │   ├── STATUS_UPDATE.md
 │   ├── TESTING_REPORT.md
-│   └── VALIDATION_SUMMARY.md
+│   ├── VALIDATION_SUMMARY.md
+│   ├── PPO_VALIDATION_REPORT.md  # PPO validation results
+│   └── DATASET_INFO.md           # Dataset information
 ├── data/                # Data storage
 │   ├── raw/             # Original datasets
 │   └── processed/       # Processed datasets
@@ -104,8 +122,48 @@ pip install -r requirements.txt
 
 ### Training PPO
 
+**Standard training (200 samples):**
 ```bash
 python scripts/train_ppo.py
+```
+
+**4K dataset training:**
+```bash
+$env:PIPELINE_TEST="0"; python scripts/train_ppo_4k.py
+```
+
+**Safe training with error handling:**
+```bash
+python scripts/train_ppo_safe.py
+```
+
+### Data Generation and Testing
+
+**Generate 4K dataset:**
+```bash
+python scripts/generate_4k_data.py
+```
+
+**Test 4K dataset:**
+```bash
+python tests/test_4k_data.py
+```
+
+**Validate PPO training:**
+```bash
+python tests/validate_ppo_training.py
+```
+
+### Analysis and Visualization
+
+**Analyze PPO results:**
+```bash
+python scripts/analysis/analyze_ppo_results.py
+```
+
+**Reward function analysis:**
+```bash
+python scripts/analysis/reward_analysis.py
 ```
 
 ### Example Usage
@@ -114,8 +172,36 @@ python scripts/train_ppo.py
 python scripts/example_usage.py
 ```
 
-### Evaluation
+### Debugging
 
+**Check training mode:**
+```bash
+python scripts/debug/check_training_mode.py
+```
+
+## Testing
+
+### Unit Tests
+Run unit tests from the project root:
+
+```bash
+python tests/test_pipeline.py
+python tests/test_ppo.py
+python tests/test_components.py
+```
+
+### 4K Dataset Testing
+```bash
+python tests/test_4k_data.py
+```
+
+### PPO Validation
+```bash
+python tests/validate_ppo_training.py
+python tests/extended_ppo_validation.py
+```
+
+### Jupyter Notebooks
 Run the included notebooks in the `notebooks/` directory:
 
 * `PPO_Testing_and_Debugging.ipynb`
