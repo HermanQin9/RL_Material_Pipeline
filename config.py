@@ -34,11 +34,11 @@ TARGET_PROP: str = "formation_energy_per_atom"
 TEST_MODE: bool = os.getenv("PIPELINE_TEST", "1") == "1"
 
 BATCH_SIZE: int = 20 if TEST_MODE else 100
-N_TOTAL: int   = 200 if TEST_MODE else 20000
+N_TOTAL: int   = 200 if TEST_MODE else 4000
 
 # 缓存文件路径 / cache file path
 CACHE_FILE: Path = PROC_DIR / (
-    "mp_data_cache_200_test.pkl" if TEST_MODE else "mp_data_cache_20k.pkl"
+    "mp_data_cache_200_test.pkl" if TEST_MODE else "mp_data_cache_4k.pkl"
 )
 
 # 公开接口 / export
