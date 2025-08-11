@@ -47,23 +47,26 @@ class PPOTrainer:
         learning_rate: float = 3e-4,  # Added learning_rate keyword
         clip_ratio: float = 0.2,
         value_coef: float = 0.5,
-        entropy_coef: float = 0.01
+        entropy_coef: float = 0.01,
+        max_steps_per_episode: int = 20  # 每个训练episode包含的总步数（可跨多个环境回合）
     ):
         self.env = env
-        
+
         # Calculate dimensions for node_action and select_node operations
         sample_obs = env.reset()
         obs_dim = self._calculate_obs_dim(sample_obs)
         action_dim = self._calculate_action_dim(env)
-        
+
         # Initialize PPO policy with correct dimensions for node_action
         self.policy = PPOPolicy(obs_dim, action_dim, hidden_size)
         self.optimizer = optim.Adam(self.policy.parameters(), lr=learning_rate)  # Use learning_rate
-        
+
         self.clip_ratio = clip_ratio
         self.value_coef = value_coef
         self.entropy_coef = entropy_coef
-        
+        # 固定每个训练episode的步数；若环境提前done（非法动作或完成N5），立即reset并继续收集
+        self.max_steps_per_episode = max_steps_per_episode
+
         # 训练统计 / Training statistics
         self.episode_rewards = []
         self.episode_lengths = []
@@ -85,10 +88,6 @@ class PPOTrainer:
         max_method_dim = max(len(methods) for methods in env.methods_for_node.values()) 
         param_dim = env.hyperparam_dim
         return node_dim + max_method_dim + param_dim
-        
-        # 训练统计 / Training statistics
-        self.episode_rewards: List[float] = []
-        self.episode_lengths: List[int] = []
 
     def select_action(self, obs: Dict[str, Any]) -> Tuple[Dict[str, Any], Dict[str, torch.Tensor]]:
         """
@@ -135,50 +134,53 @@ class PPOTrainer:
 
     def train_episode(self) -> Tuple[float, int]:
         """
-        训练一个回合
-        Train one episode
+        训练一个回合（固定步数收集策略）
+        Train one training episode with a fixed number of steps. If the env
+        reaches done early (illegal action or pipeline end), we reset and continue
+        collecting until max_steps_per_episode is reached.
         """
         obs = self.env.reset()
         episode_reward = 0.0
         episode_length = 0
-        
+
         # 收集轨迹 / Collect trajectory
-        observations = []
-        actions = []
-        rewards = []
-        log_probs = []
-        values = []
-        dones = []
-        
-        done = False
-        while not done:
+        observations: List[Dict] = []
+        actions: List[Dict] = []
+        rewards: List[float] = []
+        log_probs: List[Dict] = []
+        values: List[torch.Tensor] = []
+        dones: List[bool] = []
+
+        for _ in range(self.max_steps_per_episode):
             # 选择动作 / Select action
             action, log_prob_dict = self.select_action(obs)
-            
+
             # 环境步进 / Environment step
             next_obs, reward, done, _, _ = self.env.step(action)
-            
+
             # 存储经验 / Store experience
             observations.append(obs)
             actions.append(action)
-            rewards.append(reward)
+            rewards.append(float(reward))
             log_probs.append(log_prob_dict)
             values.append(log_prob_dict['value'])
-            dones.append(done)
-            
-            obs = next_obs
-            episode_reward += reward
+            dones.append(bool(done))
+
+            episode_reward += float(reward)
             episode_length += 1
-            
+
+            # 如果完成则重置环境继续收集 / Reset on done and continue
             if done:
-                break
-        
+                obs = self.env.reset()
+            else:
+                obs = next_obs
+
         # 计算回报 / Calculate returns
         returns = self._compute_returns(rewards, values, dones)
-        
+
         # PPO更新 / PPO update
         self._update_policy(observations, actions, log_probs, returns, values)
-        
+
         return episode_reward, episode_length
 
     def _compute_returns(self, rewards: List[float], values: List[torch.Tensor], dones: List[bool], gamma: float = 0.99) -> List[float]:
@@ -300,13 +302,19 @@ def main():
     parser.add_argument('--episodes', type=int, default=100, help='训练回合数')
     parser.add_argument('--lr', type=float, default=3e-4, help='学习率')
     parser.add_argument('--hidden_size', type=int, default=64, help='隐藏层大小')
+    parser.add_argument('--steps_per_ep', type=int, default=20, help='每个训练episode包含的固定步数')
     parser.add_argument('--save_path', type=str, default='models/ppo_pipeline.pth', help='模型保存路径')
     
     args = parser.parse_args()
     
     # 创建环境和训练器 / Create environment and trainer for node_action optimization
     env = PipelineEnv()
-    trainer = PPOTrainer(env, learning_rate=args.lr, hidden_size=args.hidden_size)  # Use learning_rate parameter
+    trainer = PPOTrainer(
+        env,
+        learning_rate=args.lr,
+        hidden_size=args.hidden_size,
+        max_steps_per_episode=args.steps_per_ep
+    )  # Use learning_rate parameter
     
     # 开始训练 / Start training
     trainer.train(num_episodes=args.episodes)

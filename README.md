@@ -8,13 +8,13 @@ This project implements a Reinforcement Learning (RL)-based automated Machine Le
 
 ### Key Features
 
-- 🤖 **Automated ML Pipeline**: PPO-driven automatic selection of preprocessing and ML methods
-- 📊 **Scalable Data Processing**: Support for both 200-sample testing and 4K production datasets
-- 🔬 **Materials Science Focus**: Specialized for formation energy prediction using Materials Project data
-- 🎯 **Reinforcement Learning**: PPO algorithm for intelligent pipeline optimization
-- 📈 **Comprehensive Analysis**: Built-in tools for training analysis and visualization
-- 🧪 **Extensive Testing**: Complete test suite for all components
-- 📚 **Rich Documentation**: Detailed documentation for all aspects of the project
+- **Automated ML Pipeline**: PPO-driven automatic selection of preprocessing and ML methods
+- **Scalable Data Processing**: Support for both 200-sample testing and 4K production datasets
+- **Materials Science Focus**: Specialized for formation energy prediction using Materials Project data
+- **Reinforcement Learning**: PPO algorithm for intelligent pipeline optimization
+- **Comprehensive Analysis**: Built-in tools for training analysis and visualization
+- **Extensive Testing**: Complete test suite for all components
+- **Rich Documentation**: Detailed documentation for all aspects of the project
 
 ### Technical Highlights
 
@@ -122,7 +122,7 @@ The PPO algorithm automatically selects:
 ## Installation
 
 ### Prerequisites
-- Python 3.8+ 
+- Python 3.11 
 - Conda (recommended) or pip
 - Git
 - Materials Project API key (for data access)
