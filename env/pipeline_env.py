@@ -246,7 +246,7 @@ class PipelineEnv:
         
         if self.current_step == self.num_nodes - 1:
             try:
-                outputs = run_pipeline(**self.pipeline_config, verbose=False)
+                outputs = run_pipeline(**self.pipeline_config, verbose=False) # type: ignore
                 metrics = outputs.get('metrics', {}) if outputs else {}
                 
                 # 计算奖励 / Calculate reward
