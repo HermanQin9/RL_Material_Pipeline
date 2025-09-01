@@ -329,7 +329,7 @@ def evaluate_pipeline_config(config: Dict[str, Any]) -> Dict[str, float]:
     Evaluate performance of a pipeline configuration
     """
     try:
-        outputs = run_pipeline(**config, verbose=False)
+        outputs = run_pipeline(**config, verbose=False) # type: ignore
         metrics = outputs.get('metrics', {}) if outputs else {}
         
         return {

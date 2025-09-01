@@ -220,22 +220,58 @@ def apply_imputer(imp, data):
     }
 
 # Imputation methods
-def impute_mean(data):
+def impute_mean(data, **params):
+    """Mean imputation. Extra params are ignored safely."""
     logger.info("Imputing using mean")
     imp = SimpleImputer(strategy='mean')
     return apply_imputer(imp, data)
 
-def impute_median(data):
+def impute_median(data, **params):
+    """Median imputation. Extra params are ignored safely."""
     logger.info("Imputing using median")
     imp = SimpleImputer(strategy='median')
     return apply_imputer(imp, data)
 
-def impute_knn(data, n_neighbors=5):
-    logger.info("Imputing using KNN, neighbors=%d", n_neighbors)
+def impute_knn(data, n_neighbors=5, **params):
+    """
+    KNN imputation with optional mapping from a normalized param in [0,1]
+    to integer neighbors in [1, 10].
+
+    Priority:
+    1) If explicit n_neighbors is provided in params, use it.
+    2) Else if 'param' provided, map p->[1..10].
+    3) Else use the function argument default (n_neighbors).
+    """
+    # 1) Explicit override via params
+    if 'n_neighbors' in params:
+        try:
+            n_neighbors = int(params['n_neighbors'])
+        except Exception:
+            pass
+
+    # 2) Map from normalized 'param' if provided and n_neighbors not explicitly set
+    if 'param' in params and 'n_neighbors' not in params:
+        try:
+            p = float(params['param'])
+            # clip to [0,1]
+            p = 0.0 if p < 0 else (1.0 if p > 1 else p)
+            # Map to 1..10 (inclusive)
+            n_neighbors = 1 + int(round(p * 9))
+        except Exception:
+            # keep existing n_neighbors if mapping fails
+            pass
+
+    # Safety clamp
+    n_neighbors = max(1, int(n_neighbors))
+
+    logger.info("Imputing using KNN, neighbors=%d%s",
+                n_neighbors,
+                f" (mapped from param={params.get('param'):.3f})" if 'param' in params and 'n_neighbors' not in params else "")
     imp = KNNImputer(n_neighbors=n_neighbors)
     return apply_imputer(imp, data)
 
-def impute_none(data):
+def impute_none(data, **params):
+    """No imputation. Extra params are ignored safely."""
     logger.info("No imputation performed")
     return {
         'X_train': data['X_train'], 
