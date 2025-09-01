@@ -6,6 +6,15 @@
 
 This project implements a Reinforcement Learning (RL)-based automated Machine Learning (AutoML) pipeline. Utilizing the Proximal Policy Optimization (PPO) algorithm, the pipeline automatically selects and tunes preprocessing methods, feature engineering techniques, and machine learning models to optimize predictive performance for formation energy prediction.
 
+### What's New (2025-09-01)
+
+- 10-node flexible RL environment with action masks (legal node sequencing) and termination at N9
+- Method-level action masking added end-to-end (env observation, trainer/policy consumption)
+- PPO enhancements: GAE(λ), minibatching, KL early stop, gradient clipping
+- Lightweight GNN (N4) and Knowledge Graph (N5) placeholders integrated
+- Robust data cache loading: uses pickle/CSV before API, safer in offline/proxy environments
+- Windows-friendly commands in docs; tests recommend disabling external pytest plugins
+
 ### Key Features
 
 - **Automated ML Pipeline**: PPO-driven automatic selection of preprocessing and ML methods
@@ -110,6 +119,55 @@ The pipeline consists of the following nodes and methods:
 | N4   | Scale           | std, robust, minmax, none       |
 | N5   | Learner         | rf, gbr, lgbm, xgb, cat         |
 | N6   | END             | Pipeline termination node       |
+
+### 10-Node Flexible Upgrade (RL env)
+
+- Fixed: N0 (start), N8 (pre-end), N9 (end)
+- Flexible: N1–N7 (optional, can be skipped) with feature engineering branches
+- New: GNN processing placeholder (N4), Knowledge Graph enrichment placeholder (N5)
+- Masks enforce legal sequences; reward computed at N9
+
+Example valid path: N0 → N2 → N1 → N3 → N4(GNN) → N5(KG) → N4/7(Scale) → N8(Model) → N9(End)
+
+### PPO Enhancements
+
+- Observations now include node action_mask, method_count, and method_mask
+- Policy masks invalid node/method logits; trainer samples only valid actions
+- GAE(λ=0.95), γ=0.99; minibatch updates with KL early stop and gradient clipping
+
+### Action Masks and Observations
+
+- action_mask: which nodes are valid next steps
+- method_mask: which methods are valid per node (shape [num_nodes, max_methods])
+- method_count: available method numbers per node
+
+### Architecture overview (10-node RL env)
+
+```
+N0 (Fetch)
+   |
+   v
+N2 (FeatureMatrix)
+   |
+   +--> [Optional middle nodes N1..N7 with masks controlling legality]
+   |         N1(Impute) → N3(Select) → N4(GNN) → N5(KG) → N7(Scale)
+   |
+   v
+N8 (Model)
+   |
+   v
+N9 (End) -> reward computed
+```
+
+Masking enforces legal transitions at each step; termination at N9 triggers evaluation and reward.
+
+### Observation/mask quick reference
+
+- fingerprint: compact numeric state summary
+- node_visited: binary flags per node
+- action_mask: 1 for legal next nodes, 0 otherwise
+- method_count: number of available methods per node
+- method_mask: [num_nodes, max_methods] binary mask; invalid methods are never sampled
 
 ### PPO Reinforcement Learning
 
@@ -267,6 +325,16 @@ python scripts/debug/check_training_mode.py
 **Comprehensive PPO analysis:**
 ```bash
 # Generate learning curves and performance metrics
+
+### Sample results
+
+Below are sample figures generated during recent runs:
+
+![PPO curves (detailed)](logs/detailed_ppo_curves.png)
+
+![PPO curves (test)](logs/ppo_test_curves.png)
+
+![Reward function analysis](logs/reward_function_analysis.png)
 python scripts/analysis/analyze_ppo_results.py
 ```
 
@@ -316,6 +384,13 @@ python scripts/debug/check_training_mode.py
 ```
 
 ## Testing
+
+Tip (Windows): for clean pytest runs, disable external plugins first.
+
+```powershell
+$env:PYTEST_DISABLE_PLUGIN_AUTOLOAD = 1
+pytest -q
+```
 
 ### Unit Tests
 Run comprehensive unit tests from the project root:
@@ -469,4 +544,4 @@ For questions or contributions, please open an issue on GitHub.
 **Author**: Herman Qin  
 **Repository**: https://github.com/HermanQin9/Summer_Project_Clear_Version  
 **License**: MIT (if applicable)  
-**Last Updated**: July 24, 2025
+**Last Updated**: September 1, 2025

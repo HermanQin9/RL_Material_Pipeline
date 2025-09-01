@@ -171,7 +171,18 @@ def fetch_data(cache: bool = True) -> pd.DataFrame:
             with open(CACHE_PATH, "rb") as f:
                 cached = pickle.load(f)
             if isinstance(cached, dict):
-                return cached.get("full_data") or cached  # type: ignore
+                # Prefer explicit 'full_data' key
+                if 'full_data' in cached and isinstance(cached['full_data'], pd.DataFrame):
+                    return cached['full_data']
+                # Fallback: if train/test provided, combine as a surrogate full df
+                train_df = cached.get('train_data')
+                test_df  = cached.get('test_data')
+                if isinstance(train_df, pd.DataFrame) and isinstance(test_df, pd.DataFrame):
+                    return pd.concat([train_df, test_df], ignore_index=True)
+                # If dict contains a DataFrame under other key, try to return the first DataFrame
+                for v in cached.values():
+                    if isinstance(v, pd.DataFrame):
+                        return v
             if isinstance(cached, pd.DataFrame):
                 return cached
         except Exception as e:

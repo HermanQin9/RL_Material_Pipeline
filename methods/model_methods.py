@@ -82,8 +82,8 @@ def fit_and_predict(model, data, model_name, best_params=None, search_results=No
         'params': best_params,
         'y_val_pred': y_val_pred,
         'y_test_pred': y_test_pred,
-        'X_train': data['X_train'], 'X_val': data['X_val'], 'X_test': data['X_test'],
-        'y_train': data['y_train'], 'y_val': data['y_val'], 'y_test': data['y_test'],
+    'X_train': data.get('X_train'), 'X_val': data.get('X_val'), 'X_test': data.get('X_test'),
+    'y_train': data.get('y_train'), 'y_val': data.get('y_val'), 'y_test': data.get('y_test'),
     }
 
 
