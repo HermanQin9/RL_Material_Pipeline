@@ -18,6 +18,12 @@ from methods.data_methods import (
     scale_features
 )
 from methods.model_methods import train_rf, train_gbr, train_lgbm, train_xgb, train_cat
+from methods.data.preprocessing import (
+    clean_data,
+    gnn_process,
+    kg_process,
+    terminate,
+)
 
 class Node:
     """流水线节点基础类 / Base pipeline node class"""
@@ -120,3 +126,65 @@ class ModelTrainingNode(Node):
             algorithm = params.pop('algorithm', self.default_algorithm)
             method = algorithm
         return super().execute(method, params, data)
+
+
+# ================= Additional Nodes for 10-node architecture =================
+
+class CleaningNode(Node):
+    """N3 Cleaning: outlier/noise/none"""
+    def __init__(self):
+        methods = {'clean': clean_data}
+        super().__init__('N3', 'Cleaning', 'DataProcessing', methods)
+
+
+class GNNNode(Node):
+    """N4 GNN processing (placeholder)"""
+    def __init__(self):
+        methods = {'process': gnn_process}
+        super().__init__('N4', 'GNN', 'FeatureEngineering', methods)
+
+
+class KGNode(Node):
+    """N5 Knowledge Graph processing (placeholder)"""
+    def __init__(self):
+        methods = {'process': kg_process}
+        super().__init__('N5', 'KnowledgeGraph', 'FeatureEngineering', methods)
+
+
+class SelectionNode(Node):
+    """N6 Feature Selection (variance/univariate/pca)"""
+    def __init__(self):
+        methods = {'select': feature_selection}
+        super().__init__('N6', 'FeatureSelection', 'FeatureEngineering', methods)
+
+
+class ScalingNodeB(Node):
+    """N7 Scaling (std/robust/minmax)"""
+    def __init__(self):
+        methods = {'scale': scale_features}
+        super().__init__('N7', 'Scaling', 'Preprocessing', methods)
+
+
+class ModelTrainingNodeB(Node):
+    """N8 Model Training (rf/gbr/xgb/cat)"""
+    def __init__(self):
+        methods = {'train_rf': train_rf,
+                   'train_gbr': train_gbr,
+                   'train_lgbm': train_lgbm,
+                   'train_xgb': train_xgb,
+                   'train_cat': train_cat}
+        self.default_algorithm = 'train_rf'
+        super().__init__('N8', 'ModelTraining', 'Training', methods)
+
+    def execute(self, method, params, data):
+        if method == 'train':
+            algorithm = params.pop('algorithm', self.default_algorithm)
+            method = algorithm
+        return super().execute(method, params, data)
+
+
+class EndNode(Node):
+    """N9 Termination (no-op)"""
+    def __init__(self):
+        methods = {'terminate': terminate}
+        super().__init__('N9', 'End', 'Control', methods)

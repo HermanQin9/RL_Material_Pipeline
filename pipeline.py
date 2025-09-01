@@ -2,7 +2,21 @@
 完整流水线：N0 → N2 → N1 → N3 → N4 → N5
 Full pipeline: N0 (data fetch) → N2 (feature matrix) → N1 (imputation) → N3 (feature selection) → N4 (scaling) → N5 (model training)
 """
-from nodes import DataFetchNode, ImputeNode, FeatureMatrixNode, FeatureSelectionNode, ScalingNode, ModelTrainingNode
+from nodes import (
+    DataFetchNode,
+    ImputeNode,
+    FeatureMatrixNode,
+    FeatureSelectionNode,
+    ScalingNode,
+    ModelTrainingNode,
+    CleaningNode,
+    GNNNode,
+    KGNode,
+    SelectionNode,
+    ScalingNodeB,
+    ModelTrainingNodeB,
+    EndNode,
+)
 from config import PROC_DIR, MODEL_DIR, LOG_DIR, TARGET_PROP
 from methods.data_methods import prepare_node_input, validate_state_keys, split_labels, update_state
 from methods.model_methods import compute_metrics_and_sizes, print_results, save_pipeline_outputs
@@ -52,7 +66,7 @@ def run_pipeline(
     logger.info("Running N2 (FeatureMatrixNode.construct), nan_thresh=%.2f, train_val_ratio=%.2f", nan_thresh, train_val_ratio)
     features = feature_node.execute(
         method='construct',
-        params={'nan_thresh': nan_thresh, 'train_val_ratio': train_val_ratio},
+        params={'nan_thresh': nan_thresh, 'train_val_ratio': train_val_ratio, 'verbose': False},
         data=fetched
     )
 
@@ -94,6 +108,117 @@ def run_pipeline(
     )
     
     return trained
+
+
+def run_pipeline_config(**config) -> dict:
+    """
+    Flexible runner for 10-node Option 2 sequences.
+
+    Expects keys like:
+      sequence: [ 'N0','N2', <perm of N1,N3,N4,N5,N6,N7>, 'N8','N9' ]
+      For each Nx in sequence (except N0,N2,N9), expects Nx_method and optional Nx_params.
+    """
+    sequence = config.get('sequence', [])
+    if not sequence:
+        raise ValueError("Missing sequence in pipeline config")
+
+    # Defaults
+    cache = config.get('cache', True)
+    nan_thresh = config.get('nan_thresh', 0.5)
+    train_val_ratio = config.get('train_val_ratio', 0.8)
+
+    state: Dict[str, Any] = {}
+    exec_times: Dict[str, float] = {}
+    import time
+    start_time = time.time()
+
+    # Node instances
+    n0 = DataFetchNode()
+    n2 = FeatureMatrixNode()
+    n1 = ImputeNode()
+    n3c = CleaningNode()
+    n4g = GNNNode()
+    n5k = KGNode()
+    n6s = SelectionNode()
+    n7b = ScalingNodeB()
+    n8t = ModelTrainingNodeB()
+    n9e = EndNode()
+
+    def step_timer(key, fn):
+        t0 = time.time()
+        out = fn()
+        exec_times[key] = time.time() - t0
+        return out
+
+    # Always run N0 then N2 first regardless of explicit sequence assertion here
+    if sequence[0] != 'N0' or sequence[1] != 'N2':
+        # still honor with forced start
+        pass
+
+    # N0
+    out0 = step_timer('N0', lambda: n0.execute('api', {'cache': cache}, {}))
+    update_state('N0', out0, state)
+
+    # N2
+    out2 = step_timer('N2', lambda: n2.execute('construct', {'nan_thresh': nan_thresh, 'train_val_ratio': train_val_ratio, 'verbose': False}, state))
+    update_state('N2', out2, state)
+
+    # Middle nodes
+    middle_nodes = [n for n in sequence if n in {'N1','N3','N4','N5','N6','N7'}]
+    for nid in middle_nodes:
+        method = config.get(f'{nid}_method')
+        params = config.get(f'{nid}_params', {}) or {}
+        if nid == 'N1':
+            # Imputation
+            out = step_timer('N1', lambda: n1.execute('impute', {'strategy': method, 'params': params}, state))
+            update_state('N1', out, state)
+        elif nid == 'N3':
+            out = step_timer('N3', lambda: n3c.execute('clean', {'strategy': method, 'params': params}, state))
+            update_state('N3', out, state)
+        elif nid == 'N4':
+            out = step_timer('N4', lambda: n4g.execute('process', {'strategy': method, 'params': params}, state))
+            update_state('N4', out, state)
+        elif nid == 'N5':
+            out = step_timer('N5', lambda: n5k.execute('process', {'strategy': method, 'params': params}, state))
+            update_state('N5', out, state)
+        elif nid == 'N6':
+            out = step_timer('N6', lambda: n6s.execute('select', {'strategy': method, 'params': params}, state))
+            update_state('N6', out, state)
+        elif nid == 'N7':
+            # map std -> standard
+            strat = 'standard' if method == 'std' else method
+            out = step_timer('N7', lambda: n7b.execute('scale', {'strategy': strat, 'params': params}, state))
+            update_state('N7', out, state)
+
+    # N8 Training
+    meth8 = config.get('N8_method', 'rf')
+    params8 = config.get('N8_params', {}) or {}
+    algo = f"train_{meth8}"
+    out8 = step_timer('N8', lambda: n8t.execute('train', {'algorithm': algo, **params8}, state))
+    update_state('N8', out8, state)
+
+    # N9 End (no-op)
+    _ = step_timer('N9', lambda: n9e.execute('terminate', {}, state))
+
+    # Metrics & outputs
+    res = compute_metrics_and_sizes(state, start_time, sequence, exec_times)
+    if isinstance(res, tuple) and len(res) == 2:
+        metrics, sizes = res
+    elif isinstance(res, dict):
+        metrics, sizes = res, {}
+    else:
+        # Fallback: unexpected return, wrap into metrics
+        metrics, sizes = {'error': 'metrics_failed', 'value': res}, {}
+    save_dir = save_pipeline_outputs(state, metrics, verbose=False)
+
+    outputs = {
+        'metrics': metrics,
+        'sizes': sizes,
+        'feature_names': state.get('feature_names'),
+        'model': state.get('model'),
+        'outputs_dir': save_dir,
+    }
+    return outputs
 
 # 主函数入口 / Main entry point
 if __name__ == '__main__':
