@@ -21,7 +21,7 @@ from env.pipeline_env import PipelineEnv
 def parse_args():
     """解析命令行参数 / Parse command line arguments"""
     parser = argparse.ArgumentParser(description='训练用于流水线优化的PPO智能体 / Train PPO agent for pipeline optimization')
-    parser.add_argument('--episodes', type=int, default=1000, help='训练回合数 / Number of training episodes')
+    parser.add_argument('--episodes', type=int, default=50, help='训练回合数 / Number of training episodes')
     parser.add_argument('--save-freq', type=int, default=100, help='每N回合保存模型 / Save model every N episodes')
     parser.add_argument('--log-freq', type=int, default=50, help='每N回合记录进度 / Log progress every N episodes')
     parser.add_argument('--model-path', type=str, default='models/ppo_agent.pth', help='模型保存/加载路径 / Path to save/load model')
