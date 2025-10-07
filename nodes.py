@@ -44,17 +44,21 @@ class Node:
 
     def execute(self, method, params, data):
         """
-        执行节点方法 / Execute node method
-        
-        Args:
-            method: 方法名称 / Method name
-            params: 方法参数 / Method parameters
-            data: 输入数据 / Input data
-            
-        Returns:
-            处理后的数据 / Processed data
+        执行节点方法，增加异常捕获和日志，所有输出为dict，异常时返回{'error': ...}
         """
-        return self.methods[method](data, **params)
+        import logging
+        logger = logging.getLogger(__name__)
+        try:
+            logger.info(f"[Node:{self.name}] 执行方法: {method}, 输入keys: {list(data.keys())}")
+            result = self.methods[method](data, **params)
+            if not isinstance(result, dict):
+                logger.warning(f"[Node:{self.name}] 输出非dict，自动包装")
+                result = {'output': result}
+            logger.info(f"[Node:{self.name}] 输出keys: {list(result.keys())}")
+            return result
+        except Exception as e:
+            logger.error(f"[Node:{self.name}] 执行{method}异常: {e}")
+            return {'error': f'{self.name}.{method} failed: {e}'}
 
 # Node 0: 获取数据、特征化并划分训练/测试集 / Node 0: Fetch data, featurize, and split into train/test sets
 class DataFetchNode(Node):
@@ -116,16 +120,24 @@ class ModelTrainingNode(Node):
 
     def execute(self, method, params, data):
         """
-        执行模型训练 / Execute model training
-        
-        Map 'train' to the default algorithm or a user-specified algorithm.
-        将'train'映射到默认算法或用户指定的算法。
+        执行模型训练，增加异常捕获和日志。
         """
-        # 将'train'映射到默认算法或用户指定算法 / Map 'train' to default or user-specified algorithm
-        if method == 'train':
-            algorithm = params.pop('algorithm', self.default_algorithm)
-            method = algorithm
-        return super().execute(method, params, data)
+        import logging
+        logger = logging.getLogger(__name__)
+        try:
+            if method == 'train':
+                algorithm = params.pop('algorithm', self.default_algorithm)
+                method = algorithm
+            logger.info(f"[Node:{self.name}] 执行方法: {method}, 输入keys: {list(data.keys())}")
+            result = super().execute(method, params, data)
+            if not isinstance(result, dict):
+                logger.warning(f"[Node:{self.name}] 输出非dict，自动包装")
+                result = {'output': result}
+            logger.info(f"[Node:{self.name}] 输出keys: {list(result.keys())}")
+            return result
+        except Exception as e:
+            logger.error(f"[Node:{self.name}] 执行{method}异常: {e}")
+            return {'error': f'{self.name}.{method} failed: {e}'}
 
 
 # ================= Additional Nodes for 10-node architecture =================
@@ -177,10 +189,22 @@ class ModelTrainingNodeB(Node):
         super().__init__('N8', 'ModelTraining', 'Training', methods)
 
     def execute(self, method, params, data):
-        if method == 'train':
-            algorithm = params.pop('algorithm', self.default_algorithm)
-            method = algorithm
-        return super().execute(method, params, data)
+        import logging
+        logger = logging.getLogger(__name__)
+        try:
+            if method == 'train':
+                algorithm = params.pop('algorithm', self.default_algorithm)
+                method = algorithm
+            logger.info(f"[Node:{self.name}] 执行方法: {method}, 输入keys: {list(data.keys())}")
+            result = super().execute(method, params, data)
+            if not isinstance(result, dict):
+                logger.warning(f"[Node:{self.name}] 输出非dict，自动包装")
+                result = {'output': result}
+            logger.info(f"[Node:{self.name}] 输出keys: {list(result.keys())}")
+            return result
+        except Exception as e:
+            logger.error(f"[Node:{self.name}] 执行{method}异常: {e}")
+            return {'error': f'{self.name}.{method} failed: {e}'}
 
 
 class EndNode(Node):

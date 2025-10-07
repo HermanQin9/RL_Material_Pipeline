@@ -1,0 +1,26 @@
+{
+  "mae_non_fe_test": null,
+  "r2_non_fe_test": null,
+  "mae_fe_test": null,
+  "r2_fe_test": null,
+  "run_time_sec": 0.4124596118927002,
+  "sequence": [
+    "N0",
+    "N2",
+    "N7",
+    "N4",
+    "N8",
+    "N9"
+  ],
+  "timestamp": "2025-10-07 00:21:04",
+  "execution_times": {
+    "N0": 0.273606538772583,
+    "N2": 0.0682382583618164,
+    "N7": 0.05291461944580078,
+    "N4": 0.014291763305664062,
+    "N8": 0.002847909927368164,
+    "N9": 4.0531158447265625e-06
+  },
+  "total_execution_time": 0.41190314292907715,
+  "error": "The 'y_pred' parameter of mean_absolute_error must be an array-like. Got None instead."
+}

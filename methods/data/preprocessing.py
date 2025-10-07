@@ -181,7 +181,11 @@ def gnn_process(data: Dict[str, Any], strategy: str = 'none', params: Optional[d
 
 def kg_process(data: Dict[str, Any], strategy: str = 'none', params: Optional[dict] = None) -> Dict[str, Any]:
 	# Placeholder: currently no-op for any strategy
-	return clean_none(data)
+	# 保证输出所有字段，补全y_val_pred/y_test_pred等
+	result = clean_none(data)
+	result.setdefault('y_val_pred', None)
+	result.setdefault('y_test_pred', None)
+	return result
 
 
 def terminate(data: Dict[str, Any], **_kwargs) -> Dict[str, Any]:

@@ -71,20 +71,36 @@ def model_predict(model, data, key='X_val'):
 
 # =========== 拆分后合并的标准 pipeline 封装 ===========
 def fit_and_predict(model, data, model_name, best_params=None, search_results=None):
-    model_fit(model, data)
-    y_val_pred  = model_predict(model, data, 'X_val')
-    y_test_pred = model_predict(model, data, 'X_test')
-    joblib.dump(model, os.path.join(MODEL_DIR, f"formation_energy_{model_name}.joblib"))
-    if search_results is not None:
-        joblib.dump(search_results, os.path.join(LOG_DIR, f"{model_name}_rs_results_{datetime.now().strftime('%Y%m%d%H%M%S')}.joblib"))
-    return {
-        'model': model,
-        'params': best_params,
-        'y_val_pred': y_val_pred,
-        'y_test_pred': y_test_pred,
-    'X_train': data.get('X_train'), 'X_val': data.get('X_val'), 'X_test': data.get('X_test'),
-    'y_train': data.get('y_train'), 'y_val': data.get('y_val'), 'y_test': data.get('y_test'),
-    }
+    import logging
+    logger = logging.getLogger(__name__)
+    y_val_pred, y_test_pred = None, None
+    try:
+        model_fit(model, data)
+        y_val_pred  = model_predict(model, data, 'X_val')
+        y_test_pred = model_predict(model, data, 'X_test')
+        joblib.dump(model, os.path.join(MODEL_DIR, f"formation_energy_{model_name}.joblib"))
+        if search_results is not None:
+            joblib.dump(search_results, os.path.join(LOG_DIR, f"{model_name}_rs_results_{datetime.now().strftime('%Y%m%d%H%M%S')}.joblib"))
+        return {
+            'model': model,
+            'params': best_params,
+            'y_val_pred': y_val_pred,
+            'y_test_pred': y_test_pred,
+            'X_train': data.get('X_train'), 'X_val': data.get('X_val'), 'X_test': data.get('X_test'),
+            'y_train': data.get('y_train'), 'y_val': data.get('y_val'), 'y_test': data.get('y_test'),
+        }
+    except Exception as e:
+        logger.error(f"Model training or prediction failed for {model_name}: {e}")
+        # 保证异常时输出所有字段
+        return {
+            'model': model,
+            'params': best_params,
+            'y_val_pred': None,
+            'y_test_pred': None,
+            'X_train': data.get('X_train'), 'X_val': data.get('X_val'), 'X_test': data.get('X_test'),
+            'y_train': data.get('y_train'), 'y_val': data.get('y_val'), 'y_test': data.get('y_test'),
+            'error': str(e)
+        }
 
 
 # ========== 1. 随机森林 ==========
@@ -171,25 +187,49 @@ def train_cat(data, iterations=100, depth=6, learning_rate=0.1, random_search=Fa
     param_range = {'iterations': (50, 200), 'depth': (4, 10), 'learning_rate': (0.05, 0.2)}
     default_param = {'iterations': iterations, 'depth': depth, 'learning_rate': learning_rate}
     default_param = extract_search_param(params, default_param, param_range)
-    
     CatBoostRegressor = _get_catboost_regressor()
     if CatBoostRegressor is None:
-        raise ImportError("CatBoost is not available")
-    
-    if random_search:
-        param_dist = {'iterations': [50, 100, 200], 'depth': [4, 6, 10],
-                      'learning_rate': [0.05, 0.1, 0.2]}
-        rs = RandomizedSearchCV(CatBoostRegressor(silent=True, random_state=42), # type: ignore
-                                param_distributions=param_dist,
-                                n_iter=10, cv=3, scoring="neg_mean_absolute_error", random_state=42, n_jobs=-1)
-        rs.fit(data['X_train'], data['y_train'])
-        model = rs.best_estimator_
-        best_params = rs.best_params_
-        return fit_and_predict(model, data, 'cat', best_params, rs.cv_results_)
-    else:
-        model = CatBoostRegressor(**default_param, silent=True, random_state=42)
-        best_params = default_param
-        return fit_and_predict(model, data, 'cat', best_params)
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error("CatBoost is not available")
+        # 兜底输出所有字段
+        return {
+            'model': None,
+            'params': default_param,
+            'y_val_pred': None,
+            'y_test_pred': None,
+            'X_train': data.get('X_train'), 'X_val': data.get('X_val'), 'X_test': data.get('X_test'),
+            'y_train': data.get('y_train'), 'y_val': data.get('y_val'), 'y_test': data.get('y_test'),
+            'error': 'CatBoost is not available'
+        }
+    try:
+        if random_search:
+            param_dist = {'iterations': [50, 100, 200], 'depth': [4, 6, 10],
+                          'learning_rate': [0.05, 0.1, 0.2]}
+            rs = RandomizedSearchCV(CatBoostRegressor(silent=True, random_state=42), # type: ignore
+                                    param_distributions=param_dist,
+                                    n_iter=10, cv=3, scoring="neg_mean_absolute_error", random_state=42, n_jobs=-1)
+            rs.fit(data['X_train'], data['y_train'])
+            model = rs.best_estimator_
+            best_params = rs.best_params_
+            return fit_and_predict(model, data, 'cat', best_params, rs.cv_results_)
+        else:
+            model = CatBoostRegressor(**default_param, silent=True, random_state=42)
+            best_params = default_param
+            return fit_and_predict(model, data, 'cat', best_params)
+    except Exception as e:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"CatBoost training failed: {e}")
+        return {
+            'model': None,
+            'params': default_param,
+            'y_val_pred': None,
+            'y_test_pred': None,
+            'X_train': data.get('X_train'), 'X_val': data.get('X_val'), 'X_test': data.get('X_test'),
+            'y_train': data.get('y_train'), 'y_val': data.get('y_val'), 'y_test': data.get('y_test'),
+            'error': str(e)
+        }
 
 
 # ========================= 指标计算和结果输出函数 / Metrics and Results Functions =========================

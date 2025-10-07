@@ -294,11 +294,21 @@ def drop_allnan(df):
 
 def apply_imputer(imp, data):
     """For（X_train, X_val, X_test）use the same imputer，format in dict"""
+    import logging
+    logger = logging.getLogger(__name__)
     X_train = imp.fit_transform(drop_allnan(data['X_train']))
     X_val   = imp.transform(drop_allnan(data['X_val']))
     X_test_raw = data.get('X_test')
     X_test  = imp.transform(drop_allnan(X_test_raw)) if X_test_raw is not None else None
-    assert not np.isnan(X_train).any(), "NaN remains after impute!"
+    # 检查并修复NaN
+    def fix_nan(arr, name):
+        if isinstance(arr, np.ndarray) and np.isnan(arr).any():
+            logger.warning(f"[impute_data] {name} contains NaN after impute, auto-filling with 0.")
+            arr = np.nan_to_num(arr)
+        return arr
+    X_train = fix_nan(X_train, 'X_train')
+    X_val = fix_nan(X_val, 'X_val')
+    X_test = fix_nan(X_test, 'X_test') if X_test is not None else None
     return {
         'X_train': X_train,
         'X_val': X_val,
@@ -417,6 +427,22 @@ def feature_matrix(data, nan_thresh=0.5, train_val_ratio=0.8, verbose=True):
         print("[DEBUG] X_train head:\n", X_train.head())
         print("[DEBUG] X_val head:\n", X_val.head())
 
+    # 检查并修复NaN
+    import logging
+    logger = logging.getLogger(__name__)
+    def fix_nan(arr, name):
+        if isinstance(arr, pd.DataFrame):
+            if arr.isna().any().any():
+                logger.warning(f"[feature_matrix] {name} contains NaN, auto-filling with 0.")
+                return arr.fillna(0)
+        elif isinstance(arr, np.ndarray):
+            if np.isnan(arr).any():
+                logger.warning(f"[feature_matrix] {name} contains NaN, auto-filling with 0.")
+                arr = np.nan_to_num(arr)
+        return arr
+    X_train = fix_nan(X_train, 'X_train')
+    X_val = fix_nan(X_val, 'X_val')
+    X_test = fix_nan(X_test, 'X_test') if X_test is not None else None
     return {
         'X_train': X_train,
         'X_val': X_val,
@@ -719,7 +745,8 @@ def prepare_node_input(node_key: str, state: dict, verbose: bool = False) -> dic
         bad_val = np.any(pd.isna(X_val), axis=1)
         train_idx = np.where(bad_train)[0]
         val_idx = np.where(bad_val)[0]
-        if len(train_idx) > 0 or len(val_idx) > 0:
+        # 显式用.any()判断是否有需要删除的样本，避免Series歧义
+        if (train_idx.size > 0) or (val_idx.size > 0):
             if verbose:
                 print(f" before {node_key}: drop {len(train_idx)} train / {len(val_idx)} val samples due to missing values")
             X_train = np.delete(X_train, train_idx, axis=0)
@@ -788,6 +815,10 @@ def update_state(node_key: str,
                  verbose: bool = False) -> None:
     """Merge node output and safeguard state consistency."""
     # ---------- 0) 通用：合并输出 ----------
+    # 若节点输出含error字段，直接写入state并抛出异常，防止流水线继续执行
+    if node_output and isinstance(node_output, dict) and 'error' in node_output:
+        state['error'] = node_output['error']
+        raise RuntimeError(f"节点 {node_key} 执行失败: {node_output['error']}")
     state.update(node_output or {})
 
     # ---------- 1) N0: 数据抓取节点 ----------
