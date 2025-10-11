@@ -326,8 +326,8 @@ def main():
     """
     主函数 / Main function
     """
-    print("🎯 Clear_Version 完整测试和PPO学习系统")
-    print("🎯 Clear_Version Complete Testing and PPO Learning System")
+    print("🎯 MatFormPPO 完整测试和PPO学习系统")
+    print("🎯 MatFormPPO Complete Testing and PPO Learning System")
     print("=" * 80)
     
     # 第一阶段：测试流水线组件 / Phase 1: Test pipeline components

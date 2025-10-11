@@ -2,7 +2,7 @@
 # Project Upload Completion Report
 
 **上传时间 / Upload Time**: 2025年7月24日 18:35 / July 24, 2025 6:35 PM  
-**GitHub仓库 / Repository**: `HermanQin9/Summer_Project_Clear_Version`  
+**GitHub仓库 / Repository**: `HermanQin9/Summer_Project_MatFormPPO`  
 **分支 / Branch**: `2025-07-24`
 
 ## 🎉 上传成功！/ Upload Successful!
@@ -70,16 +70,16 @@
 
 ### 🌐 GitHub访问链接 / GitHub Access Links
 
-- **仓库主页**: https://github.com/HermanQin9/Summer_Project_Clear_Version
-- **当前分支**: https://github.com/HermanQin9/Summer_Project_Clear_Version/tree/2025-07-24
+- **仓库主页**: https://github.com/HermanQin9/Summer_Project_MatFormPPO
+- **当前分支**: https://github.com/HermanQin9/Summer_Project_MatFormPPO/tree/2025-07-24
 - **最新提交**: f9da102 (Project reorganization: restructure files and directories)
 
 ### 📋 使用指南 / Usage Guide
 
 克隆仓库：
 ```bash
-git clone https://github.com/HermanQin9/Summer_Project_Clear_Version.git
-cd Summer_Project_Clear_Version
+git clone https://github.com/HermanQin9/Summer_Project_MatFormPPO.git
+cd Summer_Project_MatFormPPO
 git checkout 2025-07-24
 ```
 

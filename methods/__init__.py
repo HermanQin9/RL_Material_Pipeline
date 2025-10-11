@@ -1,5 +1,5 @@
 """
-Methods package for the Clear_Version pipeline.
+Methods package for the MatFormPPO pipeline.
 Contains data processing and model training functions.
 """
 

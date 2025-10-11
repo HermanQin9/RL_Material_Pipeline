@@ -33,7 +33,7 @@
 ### 📂 新的项目结构 / New Project Structure
 
 ```
-Clear_Version/
+MatFormPPO/
 ├── 📁 scripts/                    # 执行脚本
 │   ├── train_ppo.py              # 标准PPO训练
 │   ├── eval_ppo.py               # 策略评估

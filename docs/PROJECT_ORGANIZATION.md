@@ -4,7 +4,7 @@
 
 ### Directory Structure
 ```
-Clear_Version/
+MatFormPPO/
 ├── README.md                 # Project documentation (copied from July/)
 ├── config.py                 # Configuration settings
 ├── nodes.py                  # Node implementations  

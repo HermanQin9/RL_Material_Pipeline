@@ -1,10 +1,10 @@
-# Machine Learning Pipeline with PPO RL 
+# MatFormPPO: Machine Learning Pipeline with PPO RL 
 
 ### Author: Herman Qin
 
 ## Project Overview
 
-This project implements a Reinforcement Learning (RL)-based automated Machine Learning (AutoML) pipeline. Utilizing the Proximal Policy Optimization (PPO) algorithm, the pipeline automatically selects and tunes preprocessing methods, feature engineering techniques, and machine learning models to optimize predictive performance for formation energy prediction.
+MatFormPPO implements a Reinforcement Learning (RL)-based automated Machine Learning (AutoML) pipeline. Utilizing the Proximal Policy Optimization (PPO) algorithm, the pipeline automatically selects and tunes preprocessing methods, feature engineering techniques, and machine learning models to optimize predictive performance for formation energy prediction.
 
 ### What's New (2025-09-01)
 
@@ -189,8 +189,8 @@ The PPO algorithm automatically selects:
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/HermanQin9/Summer_Project_Clear_Version.git
-   cd Summer_Project_Clear_Version
+   git clone https://github.com/HermanQin9/Summer_Project_MatFormPPO.git
+   cd Summer_Project_MatFormPPO
    git checkout 2025-07-24
    ```
 
@@ -472,8 +472,8 @@ Comprehensive documentation available in the `docs/` directory:
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/HermanQin9/Summer_Project_Clear_Version.git
-   cd Summer_Project_Clear_Version
+   git clone https://github.com/HermanQin9/Summer_Project_MatFormPPO.git
+   cd Summer_Project_MatFormPPO
    git checkout 2025-07-24
    ```
 
@@ -542,6 +542,6 @@ For questions or contributions, please open an issue on GitHub.
 ---
 
 **Author**: Herman Qin  
-**Repository**: https://github.com/HermanQin9/Summer_Project_Clear_Version  
+**Repository**: https://github.com/HermanQin9/Summer_Project_MatFormPPO  
 **License**: MIT (if applicable)  
 **Last Updated**: September 1, 2025
