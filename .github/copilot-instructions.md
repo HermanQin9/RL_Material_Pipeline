@@ -13,27 +13,31 @@ This is an advanced **PPO Reinforcement Learning-driven AutoML pipeline** for ma
 ## 🏗️ Architecture Understanding
 
 ### Node-Based Pipeline System
-The core architecture follows a **sequential node execution pattern**:
+The core architecture implements a **10-node flexible execution system** with PPO-controlled sequencing:
 
 ```
-N0 (DataFetch) → N2 (FeatureMatrix) → N1 (Imputation) → N3 (FeatureSelection) → N4 (Scaling) → N5 (ModelTraining)
+N0 (DataFetch) → N2 (FeatureMatrix) → [Flexible Middle Nodes] → N8 (ModelTraining) → N9 (End)
 ```
 
-#### Current 5-Node Implementation
-| Node | Purpose | Methods Available |
-|------|---------|------------------|
-| **N0** | Data Fetch | `api` |
-| **N1** | Imputation | `mean`, `median`, `knn`, `none` |
-| **N2** | Feature Matrix | `default` |
-| **N3** | Feature Selection | `none`, `variance`, `univariate`, `pca` |
-| **N4** | Scaling | `std`, `robust`, `minmax`, `none` |
-| **N5** | Model Training | `rf`, `gbr`, `xgb`, `cat` |
+#### Current 10-Node Implementation
+| Node | Purpose | Methods Available | Position |
+|------|---------|------------------|----------|
+| **N0** | Data Fetch | `api` | Fixed (start) |
+| **N1** | Imputation | `mean`, `median`, `knn` | Flexible |
+| **N2** | Feature Matrix | `default` | Fixed (2nd) |
+| **N3** | Cleaning | `outlier`, `noise`, `none` | Flexible |
+| **N4** | GNN | `gcn`, `gat`, `sage` | Flexible |
+| **N5** | Knowledge Graph | `entity`, `relation`, `none` | Flexible |
+| **N6** | Feature Selection | `variance`, `univariate`, `pca` | Flexible |
+| **N7** | Scaling | `std`, `robust`, `minmax` | Flexible |
+| **N8** | Model Training | `rf`, `gbr`, `xgb`, `cat` | Fixed (pre-end) |
+| **N9** | End | `terminate` | Fixed (end) |
 
-#### Planned 10-Node Upgrade
-The project is upgrading to a **10-node flexible architecture** with 288 possible combinations:
-- **Fixed Nodes**: N0 (start), N8, N9 (end)
-- **Flexible Nodes**: N1-N7 with parallel feature engineering groups
-- **New Components**: GNN integration (N4), Knowledge Graph enhancement (N5)
+#### Architecture Features
+- **Fixed Nodes**: N0 (start), N2 (second), N8 (pre-end), N9 (end)
+- **Flexible Nodes**: N1, N3, N4, N5, N6, N7 - PPO decides order and selection
+- **Decision Space**: Millions of combinations (node ordering × method selection × hyperparameters)
+- **New Components**: GNN processing (N4), Knowledge Graph enrichment (N5)
 
 ### PPO Reinforcement Learning Core
 - **Agent Role**: Automatically selects optimal node sequences and methods
@@ -67,10 +71,10 @@ ppo/
 ### Key Files to Understand
 
 #### `env/pipeline_env.py`
-- **PipelineEnv class**: Core RL environment
-- **Action validation**: Ensures valid node sequences (N2→N1→N3→N4→N5)
+- **PipelineEnv class**: Core RL environment with 10-node architecture
+- **Action validation**: Ensures valid node sequences (N0→N2 fixed, flexible middle, N8→N9 end)
 - **State management**: Tracks node visits and pipeline configuration
-- **Reward calculation**: Performance-based learning signals
+- **Reward calculation**: Performance-based learning signals (triggered at N9)
 
 #### `nodes.py`
 - **Node base class**: Common interface for all pipeline steps
@@ -87,8 +91,8 @@ ppo/
 ### Action Space Structure
 ```python
 action = {
-    'node': int,      # Index into pipeline_nodes [0-4]
-    'method': int,    # Index into node's available methods
+    'node': int,      # Index into pipeline_nodes [0-9]
+    'method': int,    # Index into node's available methods [0-3]
     'params': list    # Hyperparameters [0.0-1.0]
 }
 ```
@@ -153,15 +157,21 @@ if env.current_step == 0 and node_name != 'N2':
 ## 🚧 Current Development Phase
 
 ### Completed Features
-- ✅ 5-node PPO pipeline with 85% success rate
+- ✅ 10-node flexible architecture fully implemented
+- ✅ Action masking and method-level masking
 - ✅ 4K dataset training validation  
 - ✅ Comprehensive testing and debugging
-- ✅ NODE_SELECTION_FRAMEWORK.md documentation
+- ✅ Complete documentation (10-NODE_ARCHITECTURE.md, NODE_ARCHITECTURE_SUMMARY.md)
+- ✅ Function reorganization and code deduplication
 
 ### Active Development
-- 🔄 10-node flexible architecture implementation
-- 🔄 GNN and Knowledge Graph integration
-- 🔄 288-combination optimization space
+- 🔄 GNN implementation (currently placeholder)
+- 🔄 Knowledge Graph integration (currently placeholder)
+- 🔄 PPO policy optimization for 10-node space
+
+### Historical Milestones
+- v1.0: Initial 5-node pipeline with basic PPO (85% success rate)
+- v2.0: 10-node flexible architecture with millions of combinations
 
 ### Code Quality Standards
 - **Error Handling**: Robust exception management for missing data
