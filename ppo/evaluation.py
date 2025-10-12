@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Dict, Iterable, Optional
+from typing import Any, Dict, Iterable, Optional
 
 import numpy as np
 import torch
@@ -11,7 +11,7 @@ from env.pipeline_env import PipelineEnv
 from ppo.policy import PPOPolicy
 
 
-def evaluate_policy(policy_path: str, num_episodes: int = 10, render: bool = False) -> Dict[str, float]:
+def evaluate_policy(policy_path: str, num_episodes: int = 10, render: bool = False) -> Dict[str, Any]:
     """Evaluate a trained PPO policy stored at ``policy_path``."""
     env = PipelineEnv()
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -46,11 +46,13 @@ def evaluate_policy(policy_path: str, num_episodes: int = 10, render: bool = Fal
                 obs_tensor = torch.FloatTensor(env._get_obs()).unsqueeze(0).to(device)
                 action_probs = policy.actor(obs_tensor)
 
-                node_idx = torch.argmax(action_probs[:, : env.num_nodes]).item()
+                node_idx_raw = torch.argmax(action_probs[:, : env.num_nodes]).item()
+                node_idx = int(node_idx_raw)
                 method_start = env.num_nodes
                 node_name = env.pipeline_nodes[node_idx]
                 num_methods = len(env.methods_for_node[node_name])
-                method_idx = torch.argmax(action_probs[:, method_start : method_start + num_methods]).item()
+                method_idx_raw = torch.argmax(action_probs[:, method_start : method_start + num_methods]).item()
+                method_idx = int(method_idx_raw)
                 param_idx = env.num_nodes + max(len(m) for m in env.methods_for_node.values())
                 param_value = torch.sigmoid(action_probs[:, param_idx]).item()
 

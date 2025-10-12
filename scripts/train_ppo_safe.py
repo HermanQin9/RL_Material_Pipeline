@@ -4,6 +4,9 @@
 Command-line entry point delegating to the safe trainer utilities.
 """
 from __future__ import annotations
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from ppo.safe_trainer import run_safe_training
 

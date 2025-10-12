@@ -1,6 +1,29 @@
 """
-完整流水线：N0 → N2 → N1 → N3 → N4 → N5
-Full pipeline: N0 (data fetch) → N2 (feature matrix) → N1 (imputation) → N3 (feature selection) → N4 (scaling) → N5 (model training)
+完整流水线模块 / Complete Pipeline Module
+
+This module implements two pipeline execution functions:
+本模块实现两个流水线执行函数：
+
+1. run_pipeline() - Legacy 6-node pipeline (N0→N2→N1→N3→N4→N5)
+   旧的6节点流水线，用于向后兼容
+   
+2. run_pipeline_config() - Flexible 10-node pipeline (N0→N2→[flexible]→N8→N9)
+   灵活的10节点流水线，支持PPO控制的节点选择和排序
+
+10-Node Architecture / 10节点架构:
+    N0: DataFetch (固定首位 / Fixed start)
+    N2: FeatureMatrix (固定第二 / Fixed second)
+    N1: Impute (灵活 / Flexible)
+    N3: Cleaning (灵活 / Flexible) 
+    N4: GNN (灵活 / Flexible)
+    N5: KnowledgeGraph (灵活 / Flexible)
+    N6: FeatureSelection (灵活 / Flexible)
+    N7: Scaling (灵活 / Flexible)
+    N8: ModelTraining (固定倒二 / Fixed pre-end)
+    N9: End (固定最后 / Fixed end)
+
+PPO controls the order and selection of flexible middle nodes (N1,N3,N4,N5,N6,N7)
+PPO控制灵活中间节点的顺序和选择 (N1,N3,N4,N5,N6,N7)
 """
 from nodes import (
     DataFetchNode,
@@ -52,8 +75,39 @@ def run_pipeline(
     model_params: Optional[dict] = None
 ) -> dict:
     """
-    完整流水线调度函数。
-    Full pipeline runner.
+    完整流水线调度函数 (旧版6节点) / Full Pipeline Runner (Legacy 6-Node)
+    
+    Executes a fixed-sequence pipeline: N0→N2→N1→N3→N4→N5
+    执行固定序列流水线：N0→N2→N1→N3→N4→N5
+    
+    This function is kept for backward compatibility. For new 10-node architecture,
+    use run_pipeline_config() instead.
+    此函数保留用于向后兼容。对于新的10节点架构，请使用run_pipeline_config()。
+    
+    Args:
+        cache (bool): Whether to use cached data / 是否使用缓存数据
+        impute_strategy (str): Imputation strategy ('mean'/'median'/'knn')
+                              缺失值填充策略
+        impute_params (dict): Additional imputation parameters / 额外填充参数
+        nan_thresh (float): NaN threshold for feature filtering / NaN阈值
+        train_val_ratio (float): Train/validation split ratio / 训练/验证划分比例
+        selection_strategy (str): Feature selection strategy / 特征选择策略
+        selection_params (dict): Additional selection parameters / 额外选择参数
+        scaling_strategy (str): Scaling strategy ('standard'/'robust'/'minmax')
+                               缩放策略
+        scaling_params (dict): Additional scaling parameters / 额外缩放参数
+        model_strategy (str): Model type ('rf'/'gbr'/'xgb'/'cat')
+                             模型类型
+        model_params (dict): Model hyperparameters / 模型超参数
+    
+    Returns:
+        dict: Pipeline results including trained model and metrics
+              流水线结果，包括训练好的模型和指标
+    
+    Note:
+        This uses legacy node IDs (N3=FeatureSelection, N4=Scaling, N5=ModelTraining)
+        which differ from 10-node architecture.
+        使用旧的节点ID（N3=特征选择，N4=缩放，N5=模型训练），与10节点架构不同。
     """
     
     # N0 数据获取特征化 / N0 Data fetch & featurization
@@ -112,11 +166,66 @@ def run_pipeline(
 
 def run_pipeline_config(**config) -> dict:
     """
-    Flexible runner for 10-node Option 2 sequences.
-
-    Expects keys like:
-      sequence: [ 'N0','N2', <perm of N1,N3,N4,N5,N6,N7>, 'N8','N9' ]
-      For each Nx in sequence (except N0,N2,N9), expects Nx_method and optional Nx_params.
+    灵活的10节点流水线执行器 / Flexible 10-Node Pipeline Runner
+    
+    Executes configurable pipeline sequences with PPO-controlled node selection.
+    执行可配置的流水线序列，支持PPO控制的节点选择。
+    
+    10-Node Architecture / 10节点架构:
+        - Fixed nodes: N0 (start), N2 (second), N8 (pre-end), N9 (end)
+          固定节点：N0 (起始), N2 (第二), N8 (倒二), N9 (终止)
+        - Flexible nodes: N1, N3, N4, N5, N6, N7 (PPO controls order)
+          灵活节点：N1, N3, N4, N5, N6, N7 (PPO控制顺序)
+    
+    Config Format / 配置格式:
+        sequence (list): Node execution order / 节点执行顺序
+                        Example: ['N0','N2','N1','N6','N7','N8','N9']
+        
+        For each node Nx (except N0, N2, N9):
+        对于每个节点Nx（除了N0, N2, N9）:
+            Nx_method (str): Method name for node / 节点的方法名
+            Nx_params (dict): Optional method parameters / 可选方法参数
+        
+        Global parameters / 全局参数:
+            cache (bool): Use cached data (default: True) / 使用缓存数据
+            nan_thresh (float): NaN threshold (default: 0.5) / NaN阈值
+            train_val_ratio (float): Split ratio (default: 0.8) / 划分比例
+    
+    Node Methods / 节点方法:
+        N1 (Impute): 'mean', 'median', 'knn'
+        N3 (Cleaning): 'outlier', 'noise', 'none'
+        N4 (GNN): 'gcn', 'gat', 'sage'
+        N5 (KG): 'entity', 'relation', 'none'
+        N6 (Selection): 'variance', 'univariate', 'pca'
+        N7 (Scaling): 'std', 'robust', 'minmax'
+        N8 (ModelTraining): 'rf', 'gbr', 'xgb', 'cat'
+    
+    Args:
+        **config: Pipeline configuration dictionary / 流水线配置字典
+    
+    Returns:
+        dict: Pipeline results / 流水线结果
+            - metrics: Performance metrics (MAE, R2, etc.) / 性能指标
+            - sizes: Data size information / 数据大小信息
+            - feature_names: Selected feature names / 选择的特征名称
+            - model: Trained model object / 训练好的模型对象
+            - outputs_dir: Directory with saved outputs / 输出保存目录
+    
+    Example / 示例:
+        >>> config = {
+        ...     'sequence': ['N0','N2','N1','N6','N7','N8','N9'],
+        ...     'N1_method': 'median',
+        ...     'N6_method': 'pca',
+        ...     'N7_method': 'std',
+        ...     'N8_method': 'xgb',
+        ...     'cache': True
+        ... }
+        >>> result = run_pipeline_config(**config)
+    
+    Note:
+        This function is designed for PPO reinforcement learning optimization.
+        PPO agent automatically generates optimal sequences and method selections.
+        此函数设计用于PPO强化学习优化。PPO代理自动生成最优序列和方法选择。
     """
     sequence = config.get('sequence', [])
     if not sequence:

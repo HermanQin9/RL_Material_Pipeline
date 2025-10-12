@@ -499,7 +499,9 @@ def filter_feature_names(data, selector, prefix=''):
     """
     if hasattr(selector, 'get_support') and 'feature_names' in data:
         mask = selector.get_support()
-        return [fname for fname, m in zip(data['feature_names'], mask) if m]
+        # 显式转换为布尔值，避免 pandas Series 的歧义错误
+        # Explicitly convert to bool to avoid pandas Series ambiguity error
+        return [fname for fname, m in zip(data['feature_names'], mask) if bool(m)]
     elif prefix:
         num_comps = selector.n_components_ if hasattr(selector, 'n_components_') else selector.n_components
         return [f"{prefix}{i+1}" for i in range(num_comps)]

@@ -177,7 +177,8 @@ def create_comprehensive_analysis(results: Dict[str, object]) -> Dict[str, objec
     }
 
     if results.get("mode") == "simulation":
-        traces = results.get("traces", {})
+        traces_raw = results.get("traces", {})
+        traces = traces_raw if isinstance(traces_raw, dict) else {}
         episodes = traces.get("episodes")
         rewards = traces.get("rewards")
         smoothed = traces.get("smoothed_rewards")
@@ -250,7 +251,8 @@ def print_comprehensive_analysis(analysis: Dict[str, object]) -> None:
     """Pretty-print the analysis report."""
 
     mode = analysis.get("mode", "unknown")
-    summary = analysis.get("summary", {})
+    summary_raw = analysis.get("summary", {})
+    summary = summary_raw if isinstance(summary_raw, dict) else {}
 
     print("====== Extended PPO Validation Report ======")
     print(f"Mode 模式: {mode}")
@@ -258,9 +260,12 @@ def print_comprehensive_analysis(analysis: Dict[str, object]) -> None:
         print(f"Timestamp 时间戳: {analysis['timestamp']}")
 
     if mode == "simulation":
-        print(f"Final reward 最终奖励: {summary.get('final_reward'):.3f}")
-        print(f"Best smoothed reward 最优平滑奖励: {summary.get('best_smoothed_reward'):.3f}")
-        print(f"Total episodes 总轮次: {summary.get('episodes')}")
+        final_reward = summary.get('final_reward')
+        best_smoothed = summary.get('best_smoothed_reward')
+        episodes = summary.get('episodes')
+        print(f"Final reward 最终奖励: {final_reward:.3f}" if final_reward else "Final reward: N/A")
+        print(f"Best smoothed reward 最优平滑奖励: {best_smoothed:.3f}" if best_smoothed else "Best smoothed: N/A")
+        print(f"Total episodes 总轮次: {episodes}" if episodes else "Total episodes: N/A")
     else:
         print("Subprocess details 子进程详情:")
         print(f"  Script: {summary.get('script')}")
