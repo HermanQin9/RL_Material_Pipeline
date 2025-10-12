@@ -249,4 +249,3 @@ def fix_4k_data_generation(target_size: int = 4000, batch_size: int = 100) -> bo
     except Exception as exc:  # pragma: no cover
         logger.exception("Failed to persist regenerated cache: %s", exc)
         return False
-```},
