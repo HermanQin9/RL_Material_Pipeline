@@ -142,8 +142,27 @@ def clean_none(data: Dict[str, Any], **_kwargs) -> Dict[str, Any]:
 
 
 # ================= Placeholders: N4 GNN / N5 KG / N9 End =================
-def gnn_process(data: Dict[str, Any], strategy: str = 'none', params: Optional[dict] = None) -> Dict[str, Any]:
-	# Lightweight placeholder: append simple row-wise stats as surrogate graph aggregates
+def gnn_process(data: Dict[str, Any], strategy: str = 'gcn', param: Optional[float] = None, params: Optional[dict] = None) -> Dict[str, Any]:
+	"""
+	N4节点：图神经网络处理
+	
+	调用完整的GNN实现模块（methods/gnn_processing.py）
+	支持GCN、GAT、GraphSAGE等架构。
+	
+	如果未安装PyTorch Geometric，则使用统计特征备用方案。
+	"""
+	try:
+		from methods.gnn_processing import gnn_process as gnn_process_full
+		return gnn_process_full(data, strategy=strategy, param=param, params=params)
+	except ImportError:
+		# 备用方案：统计特征
+		return _gnn_fallback_statistical(data, param)
+
+
+def _gnn_fallback_statistical(data: Dict[str, Any], param: Optional[float] = None) -> Dict[str, Any]:
+	"""
+	GNN的统计特征备用方案（当PyTorch Geometric不可用时）
+	"""
 	X_tr = _ensure_numpy(data['X_train'])
 	X_va = _ensure_numpy(data['X_val'])
 	X_te = _ensure_numpy(data.get('X_test'))
@@ -154,7 +173,7 @@ def gnn_process(data: Dict[str, Any], strategy: str = 'none', params: Optional[d
 	def append_stats(X: Optional[np.ndarray]) -> Optional[np.ndarray]:
 		if X is None:
 			return None
-		# Compute per-row mean, std, min, max (safe for NaN)
+		# 计算行统计特征 / Compute per-row statistics
 		mean = np.nanmean(X, axis=1, keepdims=True)
 		std = np.nanstd(X, axis=1, keepdims=True)
 		minv = np.nanmin(X, axis=1, keepdims=True)
@@ -166,7 +185,7 @@ def gnn_process(data: Dict[str, Any], strategy: str = 'none', params: Optional[d
 	X_te2 = append_stats(X_te)
 
 	feat_names = list(data.get('feature_names') or [])
-	feat_names += ['gnn_row_mean', 'gnn_row_std', 'gnn_row_min', 'gnn_row_max']
+	feat_names += ['gnn_fallback_mean', 'gnn_fallback_std', 'gnn_fallback_min', 'gnn_fallback_max']
 
 	return {
 		'X_train': X_tr2,
@@ -175,7 +194,8 @@ def gnn_process(data: Dict[str, Any], strategy: str = 'none', params: Optional[d
 		'y_train': data.get('y_train'),
 		'y_val': data.get('y_val'),
 		'y_test': data.get('y_test'),
-		'feature_names': feat_names
+		'feature_names': feat_names,
+		'gnn_info': {'method': 'fallback_statistical'}
 	}
 
 
