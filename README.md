@@ -80,12 +80,16 @@ This project implements a Reinforcement Learning (RL)-based automated Machine Le
 │   └── _setup.ipynb
 ├── docs/                # Documentation files
 │   ├── DATASET_INFO.md          # Dataset information and analysis
+│   ├── ENV_PPO_DOCUMENTATION_STRUCTURE.md # Environment and PPO documentation structure
 │   ├── GITHUB_UPLOAD_REPORT.md  # GitHub upload status report
+│   ├── PPO_METHOD_SELECTION_EXPLAINED.md # Comprehensive PPO method selection guide
+│   ├── PPO_METHOD_SELECTION_FLOWCHART.md # Visual flowcharts for method selection
 │   ├── PPO_TRAINING_ANALYSIS.md # PPO training analysis results
 │   ├── PPO_VALIDATION_REPORT.md # PPO validation results
 │   ├── PROJECT_ORGANIZATION.md  # Project organization guide
 │   ├── PROJECT_ORGANIZATION_COMPLETION.md # Organization completion report
 │   └── STRUCTURE_ANALYSIS.md    # Project structure analysis
+├── PPO_METHOD_SELECTION_SUMMARY.md # Quick reference for PPO method selection
 ├── data/                # Data storage
 │   ├── raw/             # Original datasets
 │   └── processed/       # Processed datasets
@@ -118,6 +122,14 @@ The PPO algorithm automatically selects:
 * **Nodes**: The sequence of steps in the pipeline.
 * **Methods**: Specific methods at each node.
 * **Hyperparameters**: Optimal parameter settings for each method.
+
+#### 📚 Understanding PPO Method Selection
+
+For detailed explanations of how PPO selects methods, see:
+
+- **🚀 Quick Reference**: [`PPO_METHOD_SELECTION_SUMMARY.md`](PPO_METHOD_SELECTION_SUMMARY.md) - Fast overview with code examples
+- **📖 Complete Guide**: [`docs/PPO_METHOD_SELECTION_EXPLAINED.md`](docs/PPO_METHOD_SELECTION_EXPLAINED.md) - Comprehensive explanation with implementation details
+- **📊 Visual Flowcharts**: [`docs/PPO_METHOD_SELECTION_FLOWCHART.md`](docs/PPO_METHOD_SELECTION_FLOWCHART.md) - Detailed diagrams and decision trees
 
 ## Installation
 
