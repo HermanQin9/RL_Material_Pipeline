@@ -167,9 +167,7 @@ MatFormPPO/
 
 ## Documentation
 └── docs/
-    ├── DATASET_INFO.md          # Dataset information & analysis
-    ├── PPO_TRAINING_ANALYSIS.md # Training results analysis
-    └── PPO_VALIDATION_REPORT.md # Validation results
+    └── 10-NODE_ARCHITECTURE.md  # 10-node pipeline architecture details
 
 ## Interactive Notebooks
 └── notebooks/
@@ -862,11 +860,8 @@ python app.py
 
 Comprehensive documentation available in the `docs/` directory:
 
-- **Dataset Info**: `DATASET_INFO.md` - Detailed dataset information
-- **PPO Analysis**: `PPO_TRAINING_ANALYSIS.md` - Training results analysis
-- **Validation Report**: `PPO_VALIDATION_REPORT.md` - Validation results
-- **Project Organization**: `PROJECT_ORGANIZATION.md` - Development guide
-- **Structure Analysis**: `STRUCTURE_ANALYSIS.md` - Architecture comparison
+- **Architecture Guide**: `10-NODE_ARCHITECTURE.md` - Detailed 10-node pipeline architecture
+- **GitHub Copilot Instructions**: `.github/copilot-instructions.md` - AI assistant configuration
 
 ## Contributing
 
