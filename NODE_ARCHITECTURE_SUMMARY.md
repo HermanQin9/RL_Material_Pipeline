@@ -1,8 +1,8 @@
 # Node Architecture Summary
 
-> **⚠️ This file is deprecated. Please refer to the comprehensive documentation:**
+> **WARNING This file is deprecated. Please refer to the comprehensive documentation:**
 > 
-> **📘 [10-NODE_ARCHITECTURE.md](docs/10-NODE_ARCHITECTURE.md)**
+> ** [10-NODE_ARCHITECTURE.md](docs/10-NODE_ARCHITECTURE.md)**
 
 ## Quick Reference
 
@@ -10,23 +10,23 @@ The project implements a **10-node flexible architecture** for PPO-driven AutoML
 
 ### Node List (Current Implementation)
 
-| Node | Name             | Methods                          | Position        |
+| Node | Name | Methods | Position |
 |------|------------------|----------------------------------|-----------------|
-| N0   | DataFetch        | `api`                            | Fixed (start)   |
-| N1   | Impute           | `mean`, `median`, `knn`          | Flexible        |
-| N2   | FeatureMatrix    | `default`                        | Fixed (2nd)     |
-| N3   | Cleaning         | `outlier`, `noise`, `none`       | Flexible        |
-| N4   | GNN              | `gcn`, `gat`, `sage`             | Flexible        |
-| N5   | KnowledgeGraph   | `entity`, `relation`, `none`     | Flexible        |
-| N6   | FeatureSelection | `variance`, `univariate`, `pca`  | Flexible        |
-| N7   | Scaling          | `std`, `robust`, `minmax`        | Flexible        |
-| N8   | ModelTraining    | `rf`, `gbr`, `xgb`, `cat`        | Fixed (pre-end) |
-| N9   | End              | `terminate`                      | Fixed (end)     |
+| N0 | DataFetch | `api` | Fixed (start) |
+| N1 | Impute | `mean`, `median`, `knn` | Flexible |
+| N2 | FeatureMatrix | `default` | Fixed (2nd) |
+| N3 | Cleaning | `outlier`, `noise`, `none` | Flexible |
+| N4 | GNN | `gcn`, `gat`, `sage` | Flexible |
+| N5 | KnowledgeGraph | `entity`, `relation`, `none` | Flexible |
+| N6 | FeatureSelection | `variance`, `univariate`, `pca` | Flexible |
+| N7 | Scaling | `std`, `robust`, `minmax` | Flexible |
+| N8 | ModelTraining | `rf`, `gbr`, `xgb`, `cat` | Fixed (pre-end) |
+| N9 | End | `terminate` | Fixed (end) |
 
 ### Execution Flow
 
 ```
-N0 (start) → N2 (fixed) → [N1,N3,N4,N5,N6,N7 - flexible order] → N8 (fixed) → N9 (end)
+N0 (start) N2 (fixed) [N1,N3,N4,N5,N6,N7 - flexible order] N8 (fixed) N9 (end)
 ```
 
 ### Key Features
@@ -40,7 +40,7 @@ N0 (start) → N2 (fixed) → [N1,N3,N4,N5,N6,N7 - flexible order] → N8 (fixed
 ### Example Pipeline
 
 ```
-N0 → N2 → N1 → N6 → N7 → N8 → N9
+N0 N2 N1 N6 N7 N8 N9
 ```
 
 ### For Detailed Information

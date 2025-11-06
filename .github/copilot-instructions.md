@@ -1,22 +1,22 @@
 # GitHub Copilot Instructions for Materials Science ML Pipeline
 
-## 🎯 Project Overview
+## Project Overview
 
 This is an advanced **PPO Reinforcement Learning-driven AutoML pipeline** for materials science formation energy prediction. The system uses intelligent agents to automatically construct optimal machine learning pipelines through node-based architecture and Materials Project API integration.
 
-### 🔬 Domain Context
+### Domain Context
 - **Materials Science**: Formation energy prediction for crystalline materials
-- **Data Source**: Materials Project API with 4K+ material datasets  
+- **Data Source**: Materials Project API with 4K+ material datasets 
 - **Target Property**: `formation_energy_per_atom` prediction
 - **ML Focus**: Automated feature engineering and model selection
 
-## 🏗️ Architecture Understanding
+## Architecture Understanding
 
 ### Node-Based Pipeline System
 The core architecture implements a **10-node flexible execution system** with PPO-controlled sequencing:
 
 ```
-N0 (DataFetch) → N2 (FeatureMatrix) → [Flexible Middle Nodes] → N8 (ModelTraining) → N9 (End)
+N0 (DataFetch) N2 (FeatureMatrix) [Flexible Middle Nodes] N8 (ModelTraining) N9 (End)
 ```
 
 #### Current 10-Node Implementation
@@ -45,34 +45,34 @@ N0 (DataFetch) → N2 (FeatureMatrix) → [Flexible Middle Nodes] → N8 (ModelT
 - **Reward System**: Based on validation performance and pipeline efficiency
 - **Learning Rate**: Adaptive optimization for gradient-based policy updates
 
-## 📁 Codebase Structure
+## Codebase Structure
 
 ### Core Modules
 ```
 env/
-├── pipeline_env.py          # PipelineEnv class - RL environment
-└── utils.py                 # Environment utilities
+ pipeline_env.py # PipelineEnv class - RL environment
+ utils.py # Environment utilities
 
-nodes.py                     # Node base class and implementations
-pipeline.py                  # Main pipeline execution logic
-config.py                    # Global configuration and paths
+nodes.py # Node base class and implementations
+pipeline.py # Main pipeline execution logic
+config.py # Global configuration and paths
 
 methods/
-├── data_methods.py          # Data processing functions
-└── model_methods.py         # ML model implementations
+ data_methods.py # Data processing functions
+ model_methods.py # ML model implementations
 
 ppo/
-├── trainer.py               # PPO training logic
-├── policy.py                # Neural network policies
-├── buffer.py                # Experience replay buffer
-└── utils.py                 # PPO utilities
+ trainer.py # PPO training logic
+ policy.py # Neural network policies
+ buffer.py # Experience replay buffer
+ utils.py # PPO utilities
 ```
 
 ### Key Files to Understand
 
 #### `env/pipeline_env.py`
 - **PipelineEnv class**: Core RL environment with 10-node architecture
-- **Action validation**: Ensures valid node sequences (N0→N2 fixed, flexible middle, N8→N9 end)
+- **Action validation**: Ensures valid node sequences (N0N2 fixed, flexible middle, N8N9 end)
 - **State management**: Tracks node visits and pipeline configuration
 - **Reward calculation**: Performance-based learning signals (triggered at N9)
 
@@ -86,14 +86,14 @@ ppo/
 - **Data preprocessing**: `impute_data()`, `scale_features()`
 - **State management**: `prepare_node_input()`, `update_state()`
 
-## 🤖 PPO Implementation Details
+## PPO Implementation Details
 
 ### Action Space Structure
 ```python
 action = {
-    'node': int,      # Index into pipeline_nodes [0-9]
-    'method': int,    # Index into node's available methods [0-3]
-    'params': list    # Hyperparameters [0.0-1.0]
+ 'node': int, # Index into pipeline_nodes [0-9]
+ 'method': int, # Index into node's available methods [0-3]
+ 'params': list # Hyperparameters [0.0-1.0]
 }
 ```
 
@@ -128,7 +128,7 @@ action = {
 - **Validation**: Train/validation splits with performance metrics
 - **Hyperparameter Optimization**: PPO-driven parameter tuning
 
-## 💡 Development Guidelines
+## Development Guidelines
 
 ### When Working with Nodes
 ```python
@@ -142,11 +142,11 @@ update_state(node_key, node_output, state, verbose=True)
 ```python
 # Action validation is critical
 if not env.select_node(action):
-    return False  # Invalid action sequence
+ return False # Invalid action sequence
 
 # Always check step constraints
 if env.current_step == 0 and node_name != 'N2':
-    return False  # First step must be N2
+ return False # First step must be N2
 ```
 
 ### State Management
@@ -154,20 +154,20 @@ if env.current_step == 0 and node_name != 'N2':
 - **Data Consistency**: Ensure X_train, y_train, X_val, y_val alignment
 - **Memory Management**: Clean up intermediate states between nodes
 
-## 🚧 Current Development Phase
+## Current Development Phase
 
 ### Completed Features
-- ✅ 10-node flexible architecture fully implemented
-- ✅ Action masking and method-level masking
-- ✅ 4K dataset training validation  
-- ✅ Comprehensive testing and debugging
-- ✅ Complete documentation (10-NODE_ARCHITECTURE.md, NODE_ARCHITECTURE_SUMMARY.md)
-- ✅ Function reorganization and code deduplication
+- SUCCESS 10-node flexible architecture fully implemented
+- SUCCESS Action masking and method-level masking
+- SUCCESS 4K dataset training validation 
+- SUCCESS Comprehensive testing and debugging
+- SUCCESS Complete documentation (10-NODE_ARCHITECTURE.md, NODE_ARCHITECTURE_SUMMARY.md)
+- SUCCESS Function reorganization and code deduplication
 
 ### Active Development
-- 🔄 GNN implementation (currently placeholder)
-- 🔄 Knowledge Graph integration (currently placeholder)
-- 🔄 PPO policy optimization for 10-node space
+- GNN implementation (currently placeholder)
+- Knowledge Graph integration (currently placeholder)
+- PPO policy optimization for 10-node space
 
 ### Historical Milestones
 - v1.0: Initial 5-node pipeline with basic PPO (85% success rate)
@@ -179,18 +179,18 @@ if env.current_step == 0 and node_name != 'N2':
 - **Testing**: Extensive validation in `tests/` directory
 - **Documentation**: Bilingual documentation throughout codebase
 
-## 🎮 Common Patterns
+## Common Patterns
 
 ### Node Execution Pattern
 ```python
 # Standard node execution flow
 try:
-    input_data = prepare_node_input('N3', state)
-    output = feature_selection_node.execute('select', params, input_data)
-    update_state('N3', output, state)
+ input_data = prepare_node_input('N3', state)
+ output = feature_selection_node.execute('select', params, input_data)
+ update_state('N3', output, state)
 except Exception as e:
-    logger.error(f"Node N3 execution failed: {e}")
-    return None
+ logger.error(f"Node N3 execution failed: {e}")
+ return None
 ```
 
 ### PPO Training Pattern
@@ -198,10 +198,10 @@ except Exception as e:
 # Typical PPO episode structure
 obs = env.reset()
 for step in range(max_steps):
-    action, log_probs = trainer.select_action(obs)
-    obs, reward, done, truncated, info = env.step(action)
-    if done:
-        break
+ action, log_probs = trainer.select_action(obs)
+ obs, reward, done, truncated, info = env.step(action)
+ if done:
+ break
 ```
 
 ### Configuration Management
@@ -210,14 +210,14 @@ for step in range(max_steps):
 from config import PROC_DIR, MODEL_DIR, TARGET_PROP, TEST_MODE
 ```
 
-## 🔧 Development Tools
+## Development Tools
 
 ### Essential Commands
 ```bash
 # Run PPO training
 python ppo/trainer.py --episodes 100
 
-# Test pipeline components  
+# Test pipeline components 
 python tests/test_pipeline.py
 
 # Validate all models
@@ -229,7 +229,7 @@ python tests/test_all_models.py
 - **debug_pipeline.py**: Pipeline debugging utilities
 - **test_components.py**: Individual component validation
 
-## 📊 Performance Expectations
+## Performance Expectations
 
 ### Training Metrics
 - **Success Rate**: Target 85%+ for valid pipeline completion
@@ -242,7 +242,7 @@ python tests/test_all_models.py
 - **R² Score**: Target >0.85 for validation set
 - **Feature Importance**: Interpretable materials physics relationships
 
-## 🌟 Best Practices
+## Best Practices
 
 ### Code Style
 - **Bilingual Comments**: Chinese/English for international collaboration

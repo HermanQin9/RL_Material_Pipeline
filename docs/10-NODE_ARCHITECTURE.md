@@ -6,18 +6,18 @@ This document describes the **implemented 10-node flexible architecture** used i
 
 ## Node Definitions
 
-| Node | Name             | Type               | Available Methods                | Position        | Hyperparams |
+| Node | Name | Type | Available Methods | Position | Hyperparams |
 |------|------------------|--------------------|----------------------------------|-----------------|-------------|
-| **N0** | DataFetch       | Data               | `api`                            | **Fixed (start)** | No |
-| **N1** | Impute          | DataProcessing     | `mean`, `median`, `knn`          | Flexible        | Yes |
-| **N2** | FeatureMatrix   | FeatureEngineering | `default`                        | **Fixed (2nd)** | No |
-| **N3** | Cleaning        | DataProcessing     | `outlier`, `noise`, `none`       | Flexible        | Yes |
-| **N4** | GNN             | FeatureEngineering | `gcn`, `gat`, `sage`             | Flexible        | No |
-| **N5** | KnowledgeGraph  | FeatureEngineering | `entity`, `relation`, `none`     | Flexible        | No |
-| **N6** | FeatureSelection| FeatureEngineering | `variance`, `univariate`, `pca`  | Flexible        | Yes |
-| **N7** | Scaling         | Preprocessing      | `std`, `robust`, `minmax`        | Flexible        | Yes |
-| **N8** | ModelTraining   | Training           | `rf`, `gbr`, `xgb`, `cat`        | **Fixed (pre-end)** | Yes |
-| **N9** | End             | Control            | `terminate`                      | **Fixed (end)** | No |
+| **N0** | DataFetch | Data | `api` | **Fixed (start)** | No |
+| **N1** | Impute | DataProcessing | `mean`, `median`, `knn` | Flexible | Yes |
+| **N2** | FeatureMatrix | FeatureEngineering | `default` | **Fixed (2nd)** | No |
+| **N3** | Cleaning | DataProcessing | `outlier`, `noise`, `none` | Flexible | Yes |
+| **N4** | GNN | FeatureEngineering | `gcn`, `gat`, `sage` | Flexible | No |
+| **N5** | KnowledgeGraph | FeatureEngineering | `entity`, `relation`, `none` | Flexible | No |
+| **N6** | FeatureSelection| FeatureEngineering | `variance`, `univariate`, `pca` | Flexible | Yes |
+| **N7** | Scaling | Preprocessing | `std`, `robust`, `minmax` | Flexible | Yes |
+| **N8** | ModelTraining | Training | `rf`, `gbr`, `xgb`, `cat` | **Fixed (pre-end)** | Yes |
+| **N9** | End | Control | `terminate` | **Fixed (end)** | No |
 
 ## Node Categories
 
@@ -31,20 +31,20 @@ This document describes the **implemented 10-node flexible architecture** used i
 ### Flexible Middle Nodes (PPO Controlled)
 
 - **N1, N3, N4, N5, N6, N7**: PPO agent decides:
-  - Which nodes to execute
-  - In what order
-  - With which methods
-  - Can be skipped if deemed unnecessary
+ - Which nodes to execute
+ - In what order
+ - With which methods
+ - Can be skipped if deemed unnecessary
 
 ### Parameter Nodes
 
 The following nodes accept hyperparameters (controlled by PPO):
 
-- **N1** (Impute): `param` ∈ [0.0, 1.0]
-- **N3** (Cleaning): `param` ∈ [0.0, 1.0]
-- **N6** (FeatureSelection): `param` ∈ [0.0, 1.0]
-- **N7** (Scaling): `param` ∈ [0.0, 1.0]
-- **N8** (ModelTraining): `param` ∈ [0.0, 1.0]
+- **N1** (Impute): `param` [0.0, 1.0]
+- **N3** (Cleaning): `param` [0.0, 1.0]
+- **N6** (FeatureSelection): `param` [0.0, 1.0]
+- **N7** (Scaling): `param` [0.0, 1.0]
+- **N8** (ModelTraining): `param` [0.0, 1.0]
 
 ## Architecture Constraints
 
@@ -62,24 +62,24 @@ The environment enforces legal node transitions through action masks:
 ```python
 # Step 0: Only N0 allowed
 if current_step == 0:
-    mask[N0] = 1.0
+ mask[N0] = 1.0
 
-# Step 1: Only N2 allowed  
+# Step 1: Only N2 allowed 
 elif current_step == 1:
-    mask[N2] = 1.0
+ mask[N2] = 1.0
 
 # Middle steps: Flexible nodes or jump to N8
 else:
-    if N8_visited and not N9_visited:
-        mask[N9] = 1.0  # After training, only termination
-    else:
-        # Allow unvisited flexible nodes
-        for node in [N1, N3, N4, N5, N6, N7]:
-            if not visited[node]:
-                mask[node] = 1.0
-        # Allow jump to training
-        if not N8_visited:
-            mask[N8] = 1.0
+ if N8_visited and not N9_visited:
+ mask[N9] = 1.0 # After training, only termination
+ else:
+ # Allow unvisited flexible nodes
+ for node in [N1, N3, N4, N5, N6, N7]:
+ if not visited[node]:
+ mask[node] = 1.0
+ # Allow jump to training
+ if not N8_visited:
+ mask[N8] = 1.0
 ```
 
 ### Method Masking
@@ -87,11 +87,11 @@ else:
 Each node has a method mask to prevent invalid method selection:
 
 ```python
-max_methods = 4  # Maximum methods across all nodes
+max_methods = 4 # Maximum methods across all nodes
 
 # Method mask shape: [num_nodes, max_methods]
 # Example for N4 (GNN) with 3 methods [gcn, gat, sage]:
-method_mask[N4] = [1.0, 1.0, 1.0, 0.0]  # 4th method invalid
+method_mask[N4] = [1.0, 1.0, 1.0, 0.0] # 4th method invalid
 ```
 
 ## Decision Space
@@ -112,7 +112,7 @@ The architecture provides enormous flexibility:
 ### Minimal Pipeline
 
 ```
-N0 → N2 → N8 → N9
+N0 N2 N8 N9
 ```
 
 - Skips all flexible preprocessing
@@ -122,38 +122,38 @@ N0 → N2 → N8 → N9
 ### Standard Pipeline
 
 ```
-N0 → N2 → N1 → N6 → N7 → N8 → N9
+N0 N2 N1 N6 N7 N8 N9
 ```
 
-- Imputation → Feature selection → Scaling → Model
+- Imputation Feature selection Scaling Model
 - Classic ML preprocessing sequence
 
 ### Advanced Pipeline with GNN
 
 ```
-N0 → N2 → N3 → N4 → N1 → N5 → N6 → N7 → N8 → N9
+N0 N2 N3 N4 N1 N5 N6 N7 N8 N9
 ```
 
-- Cleaning → GNN → Imputation → KG → Selection → Scaling → Model
+- Cleaning GNN Imputation KG Selection Scaling Model
 - Leverages graph neural networks for crystal structures
 - Incorporates knowledge graph enrichment
 
 ### GNN-Focused Pipeline
 
 ```
-N0 → N2 → N4 → N5 → N7 → N8 → N9
+N0 N2 N4 N5 N7 N8 N9
 ```
 
-- GNN → Knowledge Graph → Scaling → Model
+- GNN Knowledge Graph Scaling Model
 - Skips traditional imputation and feature selection
 - Relies on graph representations
 
 ### Invalid Sequences (Blocked by Masking)
 
-❌ `N2 → N0` - Cannot execute N0 after N2  
-❌ `N0 → N8 → N9` - Cannot skip N2 (feature matrix required)  
-❌ `N0 → N2 → N1 → N1` - Cannot execute same node twice  
-❌ `N0 → N2 → N9` - Cannot terminate without training (N8)
+ERROR `N2 N0` - Cannot execute N0 after N2 
+ERROR `N0 N8 N9` - Cannot skip N2 (feature matrix required) 
+ERROR `N0 N2 N1 N1` - Cannot execute same node twice 
+ERROR `N0 N2 N9` - Cannot terminate without training (N8)
 
 ## Implementation Details
 
@@ -165,16 +165,16 @@ From `env/pipeline_env.py`:
 pipeline_nodes = ['N0', 'N2', 'N1', 'N3', 'N4', 'N5', 'N6', 'N7', 'N8', 'N9']
 
 methods_for_node = {
-    'N0': ['api'],
-    'N1': ['mean', 'median', 'knn'],
-    'N2': ['default'],
-    'N3': ['outlier', 'noise', 'none'],
-    'N4': ['gcn', 'gat', 'sage'],
-    'N5': ['entity', 'relation', 'none'],
-    'N6': ['variance', 'univariate', 'pca'],
-    'N7': ['std', 'robust', 'minmax'],
-    'N8': ['rf', 'gbr', 'xgb', 'cat'],
-    'N9': ['terminate']
+ 'N0': ['api'],
+ 'N1': ['mean', 'median', 'knn'],
+ 'N2': ['default'],
+ 'N3': ['outlier', 'noise', 'none'],
+ 'N4': ['gcn', 'gat', 'sage'],
+ 'N5': ['entity', 'relation', 'none'],
+ 'N6': ['variance', 'univariate', 'pca'],
+ 'N7': ['std', 'robust', 'minmax'],
+ 'N8': ['rf', 'gbr', 'xgb', 'cat'],
+ 'N9': ['terminate']
 }
 
 param_nodes = {'N1', 'N3', 'N6', 'N7', 'N8'}
@@ -201,9 +201,9 @@ From `nodes.py`:
 
 ```python
 action = {
-    'node': int,      # Node index [0-9]
-    'method': int,    # Method index [0-3]
-    'params': list    # Hyperparameters [0.0-1.0]
+ 'node': int, # Node index [0-9]
+ 'method': int, # Method index [0-3]
+ 'params': list # Hyperparameters [0.0-1.0]
 }
 ```
 
@@ -211,11 +211,11 @@ action = {
 
 ```python
 observation = {
-    'fingerprint': np.array([mae, r2, n_features], dtype=float32),
-    'node_visited': np.array([0/1] * 10, dtype=float32),
-    'action_mask': np.array([0/1] * 10, dtype=float32),
-    'method_count': np.array([num_methods_per_node], dtype=int32),
-    'method_mask': np.array([[0/1] * 4] * 10, dtype=float32)
+ 'fingerprint': np.array([mae, r2, n_features], dtype=float32),
+ 'node_visited': np.array([0/1] * 10, dtype=float32),
+ 'action_mask': np.array([0/1] * 10, dtype=float32),
+ 'method_count': np.array([num_methods_per_node], dtype=int32),
+ 'method_mask': np.array([[0/1] * 4] * 10, dtype=float32)
 }
 ```
 
@@ -383,7 +383,7 @@ reward = r2_score - mae - complexity_penalty - repetition_penalty
 
 ### Computational Complexity
 
-- **Minimal pipeline** (N0→N2→N8→N9): ~5-10 seconds
+- **Minimal pipeline** (N0N2N8N9): ~5-10 seconds
 - **Standard pipeline** (+N1, N6, N7): ~10-20 seconds
 - **Advanced pipeline** (all nodes): ~20-40 seconds
 
@@ -396,27 +396,27 @@ reward = r2_score - mae - complexity_penalty - repetition_penalty
 ## Future Extensions
 
 1. **GNN Implementation**: Replace N4 placeholder with actual graph convolution
-   - Use PyTorch Geometric or DGL
-   - Process crystal structures as graphs (atoms as nodes, bonds as edges)
+ - Use PyTorch Geometric or DGL
+ - Process crystal structures as graphs (atoms as nodes, bonds as edges)
 
 2. **Knowledge Graph**: Implement N5 with materials science ontology
-   - Integrate Materials Project knowledge base
-   - Add periodic table relationships
-   - Include crystal system hierarchies
+ - Integrate Materials Project knowledge base
+ - Add periodic table relationships
+ - Include crystal system hierarchies
 
 3. **Multi-objective Optimization**: Extend reward function
-   - Balance accuracy, speed, and interpretability
-   - Add Pareto frontier exploration
+ - Balance accuracy, speed, and interpretability
+ - Add Pareto frontier exploration
 
 4. **Transfer Learning**: Pre-train on related tasks
-   - Band gap prediction
-   - Bulk modulus estimation
-   - Multi-property learning
+ - Band gap prediction
+ - Bulk modulus estimation
+ - Multi-property learning
 
 5. **Explainability**: Add node for interpretability
-   - SHAP values
-   - Feature importance visualization
-   - Decision path analysis
+ - SHAP values
+ - Feature importance visualization
+ - Decision path analysis
 
 ## References
 
