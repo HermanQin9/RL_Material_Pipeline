@@ -55,18 +55,18 @@ def test_basic_pipeline():
  assert 'model' in result, "model"
  assert 'y_val_pred' in result, "y_val_pred"
 
- # / Check prediction accuracy
+ # Check prediction accuracy
  mae = result.get('mae')
  r2 = result.get('r2')
 
- print(f"\nSUCCESS Pipeline")
+ print(f"\n✓ Pipeline execution successful")
  print(f" MAE: {mae:.4f}" if mae else " MAE: N/A")
  print(f" R²: {r2:.4f}" if r2 else " R²: N/A")
 
  return True
 
  except Exception as e:
- print(f"\nERROR Pipeline: {e}")
+ print(f"\n✗ ERROR in pipeline execution: {e}")
  import traceback
  traceback.print_exc()
  return False
@@ -126,11 +126,11 @@ def test_node_execution():
  assert 'y_val_pred' in trained, "ModelTrainingNodey_val_pred"
  print(f" ModelTrainingNode: ")
 
- print(f"\nSUCCESS ")
+ print(f"\n✓ All nodes executed successfully")
  return True
 
  except Exception as e:
- print(f"\nERROR : {e}")
+ print(f"\n✗ ERROR in node execution: {e}")
  import traceback
  traceback.print_exc()
  return False
@@ -167,13 +167,13 @@ def test_pipeline_config():
  assert result is not None, "PipelineNone"
  assert 'model' in result, "model"
 
- print(f"\nSUCCESS Pipeline")
- print(f" : {result.get('total_time', 'N/A'):.2f}s" if 'total_time' in result else "")
+ print(f"\n✓ Flexible pipeline configuration successful")
+ print(f" Execution time: {result.get('total_time', 'N/A'):.2f}s" if 'total_time' in result else "")
 
  return True
 
  except Exception as e:
- print(f"\nERROR Pipeline: {e}")
+ print(f"\n✗ ERROR in pipeline configuration: {e}")
  import traceback
  traceback.print_exc()
  return False
@@ -233,9 +233,9 @@ def test_different_strategies():
  print(f" : {e}")
  results.append({'strategy': strategy['name'], 'success': False, 'error': str(e)})
 
- # 
+ # Summary
  success_count = sum(1 for r in results if r.get('success', False))
- print(f"\nSUCCESS : {success_count}/{len(strategies)} ")
+ print(f"\n✓ Strategies passed: {success_count}/{len(strategies)}")
 
  return success_count == len(strategies)
 
@@ -282,13 +282,13 @@ def test_pipeline_with_ppo_env():
  }
 
  obs, reward, done, truncated, info = env.step(action)
- print(f" : reward={reward:.3f}, done={done}")
+ print(f" Step result: reward={reward:.3f}, done={done}")
 
- print(f"\nSUCCESS PPO")
+ print(f"\n✓ PPO environment integration successful")
  return True
 
  except Exception as e:
- print(f"\nERROR PPO: {e}")
+ print(f"\n✗ ERROR in PPO integration: {e}")
  import traceback
  traceback.print_exc()
  return False
@@ -324,7 +324,7 @@ def test_error_handling():
  passed = 0
 
  for case in test_cases:
- print(f"\n🧪 : {case['name']}")
+ print(f"\n[TEST] Case: {case['name']}")
  try:
  params = {
  'cache': True,
@@ -335,28 +335,28 @@ def test_error_handling():
  result = run_pipeline(**params)
 
  if case['should_fail']:
- print(f" WARNING ")
+ print(f" ⚠ WARNING: Expected failure but succeeded")
  else:
- print(f" ")
+ print(f" ✓ Passed")
  passed += 1
 
  except Exception as e:
  if case['should_fail']:
- print(f" : {type(e).__name__}")
+ print(f" ✓ Expected failure: {type(e).__name__}")
  passed += 1
  else:
- print(f" : {e}")
+ print(f" ✗ Unexpected failure: {e}")
 
- print(f"\nSUCCESS : {passed}/{len(test_cases)} ")
- return passed >= len(test_cases) * 0.5 # 50%
+ print(f"\n✓ Tests passed: {passed}/{len(test_cases)}")
+ return passed >= len(test_cases) * 0.5 # 50% pass threshold
 
 
 def run_all_tests():
  """
- / Run all tests
+ Run all pipeline tests
  """
  print("\n" + "="*70)
- print("🧪 Pipeline / Starting Pipeline Test Suite")
+ print("[TEST] Pipeline - Starting Pipeline Test Suite")
  print("="*70)
 
  tests = [

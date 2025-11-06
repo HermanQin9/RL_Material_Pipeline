@@ -16,7 +16,7 @@ sys.path.append('.')
 
 def run_ppo_multiple_rounds():
  """PPO"""
- print("START PPO / Starting Multi-Round PPO Training")
+ print("Starting PPO - Starting Multi-Round PPO Training")
  print("=" * 70)
 
  rounds_config = [
@@ -57,17 +57,17 @@ def run_ppo_multiple_rounds():
  round_summaries.append(round_summary)
  all_rewards.extend(rewards)
 
- print(f"SUCCESS {config['name']}:")
+ print(f"✓ {config['name']}:")
  print(f" : {len(rewards)}")
  print(f" : {round_summary['avg']:.3f} ± {round_summary['std']:.3f}")
  print(f" : {round_summary['min']:.3f} ~ {round_summary['max']:.3f}")
  else:
- print(f"WARNING {config['name']}")
+ print(f"⚠ WARNING {config['name']}")
  else:
- print(f"ERROR {config['name']}: {result.stderr[:200]}")
+ print(f"✗ ERROR {config['name']}: {result.stderr[:200]}")
 
  except Exception as e:
- print(f"ERROR {config['name']}: {e}")
+ print(f"✗ ERROR {config['name']}: {e}")
 
  return round_summaries, all_rewards
 
@@ -91,7 +91,7 @@ def extract_rewards_from_output(output):
 def create_training_visualization(round_summaries, all_rewards):
  """"""
  if not round_summaries:
- print("ERROR ")
+ print("✗ ERROR ")
  return None
 
  print("\\n ...")
@@ -176,18 +176,18 @@ def create_training_visualization(round_summaries, all_rewards):
  timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
  filename = f"logs/ppo_multi_round_analysis_{timestamp}.png"
  plt.savefig(filename, dpi=300, bbox_inches='tight')
- print(f"SUCCESS : {filename}")
+ print(f"✓ : {filename}")
 
  return filename
 
 def analyze_multi_round_results(round_summaries, all_rewards):
  """"""
  print("\\n" + "="*70)
- print(" PPO / Multi-Round Training Analysis")
+ print(" PPO - Multi-Round Training Analysis")
  print("="*70)
 
  if not round_summaries:
- print("ERROR ")
+ print("✗ ERROR ")
  return
 
  # 
@@ -197,7 +197,7 @@ def analyze_multi_round_results(round_summaries, all_rewards):
  overall_max = np.max(all_rewards)
  overall_min = np.min(all_rewards)
 
- print(f"\\n / Overall Performance:")
+ print(f"\\n - Overall Performance:")
  print(f" : {len(round_summaries)} ")
  print(f" : {total_episodes} ")
  print(f" : {overall_avg:.3f} ± {overall_std:.3f}")
@@ -206,7 +206,7 @@ def analyze_multi_round_results(round_summaries, all_rewards):
  print(f" : {overall_max - overall_min:.3f}")
 
  # 
- print(f"\\n / Round-by-Round Details:")
+ print(f"\\n - Round-by-Round Details:")
  for i, summary in enumerate(round_summaries):
  improvement = ""
  if i > 0:
@@ -222,45 +222,45 @@ def analyze_multi_round_results(round_summaries, all_rewards):
  first_avg = round_summaries[0]['avg']
  last_avg = round_summaries[-1]['avg']
  total_improvement = last_avg - first_avg
- improvement_pct = (total_improvement / abs(first_avg)) * 100 if first_avg != 0 else 0
+ improvement_pct = (total_improvement - abs(first_avg)) * 100 if first_avg != 0 else 0
 
- print(f"\\nSTART / Learning Trend Analysis:")
+ print(f"\\nSTART - Learning Trend Analysis:")
  print(f" : {first_avg:.3f}")
  print(f" : {last_avg:.3f}")
  print(f" : {total_improvement:+.3f} ({improvement_pct:+.1f}%)")
 
  if total_improvement > 0.15:
- print(" SUCCESS ! / Significant improvement!")
+ print(" SUCCESS ! - Significant improvement!")
  assessment = "excellent"
  elif total_improvement > 0.05:
- print(" / Slight improvement")
+ print(" - Slight improvement")
  assessment = "good"
  elif total_improvement > -0.05:
- print(" / Relatively stable")
+ print(" - Relatively stable")
  assessment = "stable"
  else:
- print(" WARNING / Performance decline")
+ print(" WARNING - Performance decline")
  assessment = "concerning"
  else:
  assessment = "insufficient_data"
 
  # 
- avg_stability = np.mean([1.0 / (1.0 + s['std']) for s in round_summaries])
- print(f"\\n / Training Stability:")
+ avg_stability = np.mean([1.0 - (1.0 + s['std']) for s in round_summaries])
+ print(f"\\n - Training Stability:")
  print(f" : {avg_stability:.3f} (0-1, )")
 
  if avg_stability > 0.7:
- print(" SUCCESS / Very stable training")
+ print(" SUCCESS - Very stable training")
  stability = "high"
  elif avg_stability > 0.5:
- print(" / Moderately stable")
+ print(" - Moderately stable")
  stability = "medium"
  else:
- print(" WARNING / Unstable training")
+ print(" WARNING - Unstable training")
  stability = "low"
 
  # 
- print(f"\\n / Assessment & Recommendations:")
+ print(f"\\n - Assessment & Recommendations:")
 
  if assessment == "excellent":
  print(" PPO!")
@@ -285,7 +285,7 @@ def analyze_multi_round_results(round_summaries, all_rewards):
 
 if __name__ == "__main__":
  try:
- print(" PPO / Multi-Round PPO Training Validation")
+ print(" PPO - Multi-Round PPO Training Validation")
 
  # 
  round_summaries, all_rewards = run_ppo_multiple_rounds()
@@ -297,15 +297,15 @@ if __name__ == "__main__":
  # 
  analyze_multi_round_results(round_summaries, all_rewards)
 
- print(f"\\n PPO! / Multi-Round Training Complete!")
+ print(f"\\n PPO! - Multi-Round Training Complete!")
  if chart_file:
  print(f" : {chart_file}")
  print(f" logs/ ")
 
  else:
- print("ERROR / No training data collected")
+ print("✗ ERROR - No training data collected")
 
  except Exception as e:
- print(f"ERROR : {e}")
+ print(f"✗ ERROR : {e}")
  import traceback
  traceback.print_exc()

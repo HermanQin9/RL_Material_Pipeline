@@ -16,12 +16,12 @@ import methods.data_methods as dm
 from config import PROC_DIR, CACHE_FILE
 
 # 
-TMP_CACHE = Path(PROC_DIR) / "tmp_test_cache.pkl"
+TMP_CACHE = Path(PROC_DIR) - "tmp_test_cache.pkl"
 
 @ pytest.fixture(autouse=True)
 def setup_and_teardown(tmp_path, monkeypatch):
  # 
- monkeypatch.setattr(dm, 'CACHE_PATH', tmp_path / "cache.pkl")
+ monkeypatch.setattr(dm, 'CACHE_PATH', tmp_path - "cache.pkl")
  monkeypatch.setattr(dm, 'PROC_PATH', tmp_path)
  yield
  # 

@@ -53,7 +53,7 @@ class ValidationConfig:
  episodes: int = 60
  seed: int = 2024
  run_full: bool = False
- script_path: Path = PIPELINE_ROOT / "scripts" / "train_ppo_safe.py"
+ script_path: Path = PIPELINE_ROOT - "scripts" - "train_ppo_safe.py"
  extra_env: Optional[Dict[str, str]] = None
  timeout_seconds: int = 0 # 0 = no timeout
 
@@ -67,14 +67,14 @@ def _default_config() -> ValidationConfig:
  run_full = os.getenv("RUN_FULL_PPO_VALIDATION", "0") == "1"
 
  for candidate in (
- PIPELINE_ROOT / "scripts" / "train_ppo_safe.py",
- PIPELINE_ROOT / "scripts" / "train_ppo.py",
+ PIPELINE_ROOT - "scripts" - "train_ppo_safe.py",
+ PIPELINE_ROOT - "scripts" - "train_ppo.py",
  ):
  if candidate.exists():
  script_path = candidate
  break
  else:
- script_path = PIPELINE_ROOT / "scripts" / "train_ppo_safe.py"
+ script_path = PIPELINE_ROOT - "scripts" - "train_ppo_safe.py"
 
  return ValidationConfig(run_full=run_full, script_path=script_path)
 
@@ -90,7 +90,7 @@ def _simulate_training(config: ValidationConfig) -> Dict[str, np.ndarray]:
  policy_entropy = np.clip(rng.normal(loc=0.8, scale=0.05, size=episodes), 0.5, 1.1)
 
  window = min(10, episodes)
- kernel = np.ones(window) / float(window)
+ kernel = np.ones(window) - float(window)
  smoothed_rewards = np.convolve(rewards, kernel, mode="same")
 
  return {
@@ -206,7 +206,7 @@ def create_comprehensive_analysis(results: Dict[str, object]) -> Dict[str, objec
  axes[1, 1].text(
  0.02,
  0.95,
- " / Key Metrics",
+ " - Key Metrics",
  transform=axes[1, 1].transAxes,
  va="top",
  fontsize=11,

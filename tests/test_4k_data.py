@@ -33,7 +33,7 @@ def test_4k_data_fetch():
  print()
 
  if not API_KEY:
- print("ERROR API_KEY ")
+ print("✗ ERROR API_KEY ")
  return False
 
  # 
@@ -43,19 +43,19 @@ def test_4k_data_fetch():
  cache_path = Path(CACHE_FILE)
  if cache_path.exists():
  print(f" : {cache_path}")
- print(f" : {cache_path.stat().st_size / (1024*1024):.1f} MB")
+ print(f" : {cache_path.stat().st_size - (1024*1024):.1f} MB")
 
  # 
  print(" ...")
  try:
  df = fetch_data(cache=True)
- print(f"SUCCESS : {df.shape}")
+ print(f"✓ : {df.shape}")
  print(f" : {list(df.columns)}")
  print(f" 3:")
  print(df[['material_id', 'formula_pretty', 'formation_energy_per_atom']].head(3))
  return True
  except Exception as e:
- print(f"WARNING : {e}")
+ print(f"⚠ WARNING : {e}")
  print(" ...")
  cache_path.unlink()
 
@@ -66,7 +66,7 @@ def test_4k_data_fetch():
  df = fetch_data(cache=False)
 
  fetch_time = time.time() - start_time
- print(f"SUCCESS !")
+ print(f"✓ !")
  print(f" : {df.shape}")
  print(f" : {fetch_time/60:.1f} ")
  print(f" : {list(df.columns)}")
@@ -85,7 +85,7 @@ def test_4k_data_fetch():
 
  if 'structure' in df.columns:
  valid_structures = df['structure'].notna().sum()
- print(f" : {valid_structures} / {len(df)}")
+ print(f" : {valid_structures} - {len(df)}")
 
  print(f"\n 5:")
  display_cols = ['material_id', 'formula_pretty', 'formation_energy_per_atom']
@@ -95,7 +95,7 @@ def test_4k_data_fetch():
  return True
 
  except Exception as e:
- print(f"ERROR : {e}")
+ print(f"✗ ERROR : {e}")
  import traceback
  traceback.print_exc()
  return False
@@ -113,7 +113,7 @@ def test_4k_featurization():
  # 
  print(" ...")
  df = fetch_data(cache=True)
- print(f"SUCCESS : {df.shape}")
+ print(f"✓ : {df.shape}")
 
  # 
  print(" ...")
@@ -122,7 +122,7 @@ def test_4k_featurization():
  df_feat = featurize_data(df)
 
  feat_time = time.time() - start_time
- print(f"SUCCESS !")
+ print(f"✓ !")
  print(f" : {feat_time/60:.1f} ")
  print(f" : {df_feat.shape}")
  print(f" : {df_feat.shape[1] - df.shape[1]}")
@@ -143,7 +143,7 @@ def test_4k_featurization():
  return True
 
  except Exception as e:
- print(f"ERROR : {e}")
+ print(f"✗ ERROR : {e}")
  import traceback
  traceback.print_exc()
  return False
@@ -151,8 +151,8 @@ def test_4k_featurization():
 def test_4k_pipeline():
  """4K"""
  print("\n" + "=" * 60)
- print("START 4K")
- print("START Testing Complete 4K Data Pipeline")
+ print("Starting 4K")
+ print("Starting Testing Complete 4K Data Pipeline")
  print("=" * 60)
 
  try:
@@ -164,7 +164,7 @@ def test_4k_pipeline():
  result = fetch_and_featurize(cache=True)
 
  pipeline_time = time.time() - start_time
- print(f"SUCCESS !")
+ print(f"✓ !")
  print(f" : {pipeline_time/60:.1f} ")
 
  # 
@@ -186,7 +186,7 @@ def test_4k_pipeline():
  return True
 
  except Exception as e:
- print(f"ERROR : {e}")
+ print(f"✗ ERROR : {e}")
  import traceback
  traceback.print_exc()
  return False
@@ -223,7 +223,7 @@ def main():
  print("=" * 60)
 
  for test_name, result in test_results:
- status = "SUCCESS " if result else "ERROR "
+ status = "✓ " if result else "ERROR "
  print(f" {test_name}: {status}")
 
  all_passed = all(result for _, result in test_results)
@@ -235,7 +235,7 @@ def main():
  print(" $env:PIPELINE_TEST=\"0\"; python train_ppo_4k.py")
  else:
  print("\nWARNING ")
- print("WARNING Some tests failed, please check error messages")
+ print("⚠ WARNING Some tests failed, please check error messages")
 
  return all_passed
 
