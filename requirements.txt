@@ -17,9 +17,9 @@ torch>=1.10.0
 torch-geometric>=2.0.0
 
 # Materials Science
-pymatgen>=2022.0.0
-matminer>=0.7.0
-mp-api>=0.27.0
+pymatgen>=2024.0.0,<2025.0.0
+matminer>=0.9.0
+mp-api>=0.41.0
 
 # Utilities
 joblib>=1.1.0
