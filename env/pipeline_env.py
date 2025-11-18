@@ -17,7 +17,7 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from pipeline import run_pipeline, run_pipeline_config
+from pipeline import run_pipeline
 
 
 class PipelineEnv:

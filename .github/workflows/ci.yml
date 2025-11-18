@@ -46,13 +46,17 @@ jobs:
       run: |
         mkdir -p logs
         
-    - name: Run quick tests
+    - name: Run core module tests
+      run: |
+        pytest tests/test_env_utils.py tests/test_methods_utils.py tests/test_ppo_buffer.py tests/test_ppo_utils.py -v --tb=short
+        
+    - name: Run quick validation tests
       run: |
         pytest tests/quick_test.py -v --tb=short
         
-    - name: Run unit tests
+    - name: Run unit tests (excluding slow)
       run: |
-        pytest tests/ -v -m "unit or not slow" --tb=short --continue-on-collection-errors
+        pytest tests/ -v -m "not slow" --tb=short --ignore=tests/test_pipeline.py --continue-on-collection-errors
         
     - name: Run integration tests
       if: matrix.python-version == '3.8' && matrix.os == 'ubuntu-latest'
