@@ -74,7 +74,7 @@ def train_ppo_and_collect_sequences(
         trainer: 训练好的PPO trainer
     """
     print("=" * 70)
-    print("🚀 开始PPO训练，探索最优流水线序列")
+    print("[START] 开始PPO训练，探索最优流水线序列")
     print("=" * 70)
     
     env = PipelineEnv()
@@ -126,7 +126,7 @@ def train_ppo_and_collect_sequences(
             # 这里简化处理，实际应该调用trainer的update方法
             pass
     
-    print(f"\n✅ 训练完成！收集到 {len(sequences)} 个完整序列")
+    print(f"\n[SUCCESS] 训练完成！收集到 {len(sequences)} 个完整序列")
     return sequences, rewards, trainer
 
 
@@ -246,7 +246,7 @@ def compare_with_best_practices(
     对比PPO发现的序列与标准最佳实践
     """
     print("\n" + "=" * 70)
-    print("📊 对比PPO发现的序列与标准最佳实践")
+    print("[COMPARE] 对比PPO发现的序列与标准最佳实践")
     print("=" * 70)
     
     # 获取PPO的top-5序列
@@ -258,7 +258,7 @@ def compare_with_best_practices(
     for bp_name, bp_info in BEST_PRACTICE_SEQUENCES.items():
         bp_seq = bp_info['sequence']
         
-        print(f"\n📌 最佳实践: {bp_name}")
+        print(f"\n[BP] 最佳实践: {bp_name}")
         print(f"   描述: {bp_info['description']}")
         print(f"   序列: {' → '.join(bp_seq)}")
         
@@ -274,9 +274,9 @@ def compare_with_best_practices(
                 best_match = ppo_seq
                 best_reward = ppo_reward
         
-        print(f"   ✓ 最相似的PPO序列: {' → '.join(best_match) if best_match else 'None'}")
-        print(f"   ✓ 相似度: {best_similarity:.2%}")
-        print(f"   ✓ PPO奖励: {best_reward:.3f}")
+        print(f"   [MATCH] 最相似的PPO序列: {' → '.join(best_match) if best_match else 'None'}")
+        print(f"   [MATCH] 相似度: {best_similarity:.2%}")
+        print(f"   [MATCH] PPO奖励: {best_reward:.3f}")
         
         results.append({
             'best_practice': bp_name,
@@ -352,7 +352,7 @@ def visualize_results(
     
     plt.tight_layout()
     plt.savefig(output_dir / 'rl_best_practices_validation.png', dpi=150, bbox_inches='tight')
-    print(f"\n📊 可视化报告已保存: {output_dir / 'rl_best_practices_validation.png'}")
+    print(f"\n[SAVED] 可视化报告已保存: {output_dir / 'rl_best_practices_validation.png'}")
 
 
 # ===================== 主函数 =====================
@@ -362,7 +362,7 @@ def main():
     主验证流程
     """
     print("\n" + "=" * 70)
-    print("🎯 RL Agent 最佳实践重新发现验证")
+    print("[VALIDATE] RL Agent 最佳实践重新发现验证")
     print("   Validate RL Agent Re-discovery of Best Practices")
     print("=" * 70)
     
@@ -372,7 +372,7 @@ def main():
     OUTPUT_DIR = Path(__file__).parent.parent / 'logs' / f'validation_{datetime.now().strftime("%Y%m%d_%H%M%S")}'
     
     # Step 1: 训练PPO并收集序列
-    print("\n📝 Step 1: 训练PPO agent并收集探索序列")
+    print("\n[STEP1] Step 1: 训练PPO agent并收集探索序列")
     sequences, rewards, trainer = train_ppo_and_collect_sequences(
         episodes=EPISODES,
         max_steps=MAX_STEPS,
@@ -380,11 +380,11 @@ def main():
     )
     
     if not sequences:
-        print("\n❌ 错误：没有收集到完整序列！")
+        print("\n[ERROR] 错误：没有收集到完整序列！")
         return
     
     # Step 2: 分析节点使用
-    print("\n📝 Step 2: 分析节点使用模式")
+    print("\n[STEP2] Step 2: 分析节点使用模式")
     node_usage = analyze_node_usage(sequences)
     print("\n节点使用统计:")
     for node, stats in sorted(node_usage.items()):
@@ -393,16 +393,16 @@ def main():
               f"平均位置 {stats['avg_position']:.1f}")
     
     # Step 3: 对比最佳实践
-    print("\n📝 Step 3: 对比PPO发现的序列与标准最佳实践")
+    print("\n[STEP3] Step 3: 对比PPO发现的序列与标准最佳实践")
     comparison_df = compare_with_best_practices(sequences, rewards)
     
     # Step 4: 生成报告
-    print("\n📝 Step 4: 生成详细报告")
+    print("\n[STEP4] Step 4: 生成详细报告")
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     
     # 保存对比结果
     comparison_df.to_csv(OUTPUT_DIR / 'best_practices_comparison.csv', index=False)
-    print(f"   ✓ 对比结果已保存: {OUTPUT_DIR / 'best_practices_comparison.csv'}")
+    print(f"   [SAVED] 对比结果已保存: {OUTPUT_DIR / 'best_practices_comparison.csv'}")
     
     # 保存top序列
     top_sequences = find_top_sequences(sequences, rewards, top_k=5)
@@ -415,33 +415,33 @@ def main():
             }
             for seq, reward in top_sequences
         ], f, indent=2)
-    print(f"   ✓ Top-5序列已保存: {OUTPUT_DIR / 'top_5_sequences.json'}")
+    print(f"   [SAVED] Top-5序列已保存: {OUTPUT_DIR / 'top_5_sequences.json'}")
     
     # 生成可视化
     visualize_results(comparison_df, node_usage, top_sequences, OUTPUT_DIR)
     
     # Step 5: 总结
     print("\n" + "=" * 70)
-    print("📈 验证结果总结")
+    print("[RESULTS] 验证结果总结")
     print("=" * 70)
     
     discovered_count = comparison_df['discovered'].sum()
     total_practices = len(comparison_df)
     discovery_rate = discovered_count / total_practices
     
-    print(f"\n✅ 重新发现率: {discovered_count}/{total_practices} ({discovery_rate:.1%})")
+    print(f"\n[SUCCESS] 重新发现率: {discovered_count}/{total_practices} ({discovery_rate:.1%})")
     print(f"   - 平均相似度: {comparison_df['similarity'].mean():.2%}")
     print(f"   - 最高相似度: {comparison_df['similarity'].max():.2%}")
     print(f"   - 最佳PPO奖励: {comparison_df['ppo_reward'].max():.3f}")
     
     if discovery_rate >= 0.6:
-        print("\n🎉 结论: PPO agent成功重新发现了标准最佳实践！")
+        print("\n[COMPLETE] 结论: PPO agent成功重新发现了标准最佳实践！")
     elif discovery_rate >= 0.4:
-        print("\n⚠️  结论: PPO agent部分重新发现了最佳实践，需要继续训练")
+        print("\n[WARN] 结论: PPO agent部分重新发现了最佳实践，需要继续训练")
     else:
-        print("\n❌ 结论: PPO agent未能有效重新发现最佳实践，需要调整训练策略")
+        print("\n[FAIL] 结论: PPO agent未能有效重新发现最佳实践，需要调整训练策略")
     
-    print(f"\n📁 完整报告保存在: {OUTPUT_DIR}")
+    print(f"\n[SAVED] 完整报告保存在: {OUTPUT_DIR}")
     print("=" * 70)
 
 

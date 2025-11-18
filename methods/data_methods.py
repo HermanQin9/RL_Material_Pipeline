@@ -614,7 +614,7 @@ def prepare_node_input(node_key: str, state: dict, verbose: bool = False) -> dic
         # N5 模型训练节点：确保标签已分割 / N5 training node: ensure labels are split
         if 'y_train' not in state:
             if verbose:
-                print("    📝 分割标签数据 / Splitting label data...")
+                print("    [INFO] 分割标签数据 / Splitting label data...")
             split_labels(state)
         return {
             'X_train': state.get('X_train'),

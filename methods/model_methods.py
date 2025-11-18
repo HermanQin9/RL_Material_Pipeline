@@ -243,7 +243,7 @@ def print_results(metrics: dict, sizes: dict) -> None:
     打印流水线执行结果。
     Print pipeline execution results.
     """
-    print("📈 数据集统计 / Dataset Statistics:")
+    print("[STATS] 数据集统计 / Dataset Statistics:")
     print("-" * 50)
     print(f"  Non-Fe数据集 / Non-Fe Dataset:")
     print(f"    总计 / Total: {sizes['total_non_fe']:,}")
@@ -252,7 +252,7 @@ def print_results(metrics: dict, sizes: dict) -> None:
     print(f"  Fe数据集 / Fe Dataset: {sizes['total_fe']:,}")
     print(f"  特征数量 / Features: {sizes['n_features']:,}")
     print()
-    print("🎯 性能指标 / Performance Metrics:")
+    print("[METRICS] 性能指标 / Performance Metrics:")
     print("-" * 50)
     print(f"  Non-Fe测试集 / Non-Fe Test Set:")
     print(f"    MAE: {metrics['mae_non_fe_test']:.4f}")
@@ -264,7 +264,7 @@ def print_results(metrics: dict, sizes: dict) -> None:
     else:
         print("  Fe测试集 / Fe Test Set: 无数据 / No data")
     print()
-    print("⏱️  执行时间 / Execution Time:")
+    print("[TIME] 执行时间 / Execution Time:")
     print("-" * 50)
     total_time = metrics['run_time_sec']
     for node, exec_time in metrics['execution_times'].items():
