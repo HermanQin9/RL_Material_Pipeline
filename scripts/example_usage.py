@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
 示例用法 - Example Usage
-演示如何使用清理版本的机器学习管线
-Demonstrates how to use the Clear_Version ML pipeline
+演示如何使用 MatFormPPO 机器学习管线
+Demonstrates how to use the MatFormPPO ML pipeline
 """
 
 import sys
@@ -18,7 +18,7 @@ from nodes import DataFetchNode, FeatureMatrixNode, ImputeNode, FeatureSelection
 
 def main():
     """主函数 / Main function"""
-    print("=== Clear_Version Materials ML Pipeline Demo ===")
+    print("=== MatFormPPO Materials ML Pipeline Demo ===")
     
     # 1. 运行完整管线 / Run complete pipeline
     print("\n1. Running complete ML pipeline...")
@@ -75,7 +75,7 @@ def main():
     print(f"   ✓ Feature matrix: {features['X_train'].shape}")
     
     print("\n✓ All components working correctly!")
-    print("✓ Clear_Version pipeline is ready for production use!")
+    print("✓ MatFormPPO pipeline is ready for production use!")
 
 if __name__ == "__main__":
     main()

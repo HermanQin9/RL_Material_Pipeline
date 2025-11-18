@@ -17,7 +17,7 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from pipeline import run_pipeline
+from pipeline import run_pipeline, run_pipeline_config
 
 
 class PipelineEnv:
@@ -28,35 +28,46 @@ class PipelineEnv:
     
     def __init__(self):
         """初始化强化学习环境 / Initialize RL environment for node_action and select_node"""
+        # 控制台调试输出开关 / Debug print flag
+        self.debug = False
+
         # 定义流水线节点顺序和方法集合 / Define pipeline nodes and their methods for select_node
-        # 节点列表：N2 (特征矩阵)、N1 (缺失填充)、N3 (特征选择)、N4 (归一化)、N5 (训练)
-        # Node list: ['N2','N1','N3','N4','N5'] (FeatureMatrix, Impute, feature_selection, Scale, Train)
-        self.pipeline_nodes = ['N2', 'N1', 'N3', 'N4', 'N5']  # select_node options
+        # 10-node (Option 2): fixed N0(start), N2(second), N8(pre-end), N9(end)
+        # PPO controls N1,N3,N4,N5,N6,N7 order in the middle
+        self.pipeline_nodes = ['N0', 'N2', 'N1', 'N3', 'N4', 'N5', 'N6', 'N7', 'N8', 'N9']
         self.num_nodes = len(self.pipeline_nodes)
-        
+
         # 每个节点的可用方法 / Available methods for each select_node operation
         self.methods_for_node = {
-            'N1': ['mean', 'median', 'knn', 'none'],        # 缺失填充方法 / Imputation methods
-            'N2': ['default'],                             # 构建特征矩阵方法 / Feature matrix methods  
-            'N3': ['none', 'variance', 'univariate', 'pca'], # 特征选择方法 / feature_selection methods
-            'N4': ['std', 'robust', 'minmax', 'none'],      # 数据归一化方法 / Scaling methods
-            'N5': ['rf', 'gbr', 'xgb', 'cat']             # 模型训练方法 / Model training methods
+            'N0': ['api'],
+            'N1': ['mean', 'median', 'knn'],
+            'N2': ['default'],
+            'N3': ['outlier', 'noise', 'none'],
+            'N4': ['gcn', 'gat', 'sage'],
+            'N5': ['entity', 'relation', 'none'],
+            'N6': ['variance', 'univariate', 'pca'],
+            'N7': ['std', 'robust', 'minmax'],
+            'N8': ['rf', 'gbr', 'xgb', 'cat'],
+            'N9': ['terminate']
         }
-        
+
+        # 最大方法数（用于方法掩码的统一长度）/ Max methods across nodes for uniform masking
+        self.max_methods = max(len(m) for m in self.methods_for_node.values())
+
         # 只有这些节点使用超参数 / Only these nodes accept a 'param' hyperparameter for node_action
-        self.param_nodes = {'N1', 'N3', 'N4', 'N5'}
+        self.param_nodes = {'N1', 'N3', 'N6', 'N7', 'N8'}
         self.hyperparam_dim = 1  # 超参数维度 / Dimension of hyperparameter
-        
+
         # 缓存初始化 / Cache initialization
         self._cache = None
-        
+
         # 环境状态初始化 / Initialize state variables
         self.current_step = 0
         self.node_visited = [False] * self.num_nodes  # 每个节点是否已访问 / Whether each node has been visited
-        
+
         # 每种方法调用次数 / Count of method usage
         self.method_calls = {m: 0 for methods in self.methods_for_node.values() for m in methods}
-        
+
         # 指纹： [MAE, R2, 特征数量] / fingerprint = [MAE, R2, number of features]
         self.fingerprint = np.zeros(3, dtype=np.float32)
 
@@ -68,15 +79,15 @@ class PipelineEnv:
         }
 
         # Pipeline配置初始化 / Pipeline configuration templates
-        self.pipeline_config: Dict[str, Any] = {'sequence': []}
-        
+        self.pipeline_config = {}
+
         # 数据初始化配置 (N0节点) / Data initialization with node N0
         self.data_init_config = {
             'sequence': ['N0'],
-            'N0_method': 'api', 
+            'N0_method': 'api',
             'N0_params': {}
         }
-        
+
         # 默认完整流水线配置 / Default full pipeline config (compatible with run_pipeline)
         self.default_pipeline_config = {
             'cache': True,
@@ -126,10 +137,24 @@ class PipelineEnv:
         返回当前观测，包括指纹、节点访问标志、动作掩码
         Return current observation: fingerprint, visited flags, action mask
         """
+        # 方法数信息（用于方法级别的先验/提示）/ method-count hint for policy
+        method_count = np.array([len(self.methods_for_node[n]) for n in self.pipeline_nodes], dtype=np.float32)
+        method_count = method_count / (method_count.max() if method_count.max() > 0 else 1.0)
+
+        # 方法级别掩码：形状 [num_nodes, max_methods]，每个节点有效方法置1
+        # Method-level mask: shape [num_nodes, max_methods], mark valid methods with 1
+        method_mask = np.zeros((self.num_nodes, self.max_methods), dtype=np.float32)
+        for i, n in enumerate(self.pipeline_nodes):
+            k = len(self.methods_for_node[n])
+            if k > 0:
+                method_mask[i, :k] = 1.0
+
         obs = {
             'fingerprint': self.fingerprint.copy(),
             'node_visited': np.array(self.node_visited, dtype=np.float32),
-            'action_mask': self._compute_action_mask()
+            'action_mask': self._compute_action_mask(),
+            'method_count': method_count,
+            'method_mask': method_mask,
         }
         return obs
 
@@ -140,20 +165,26 @@ class PipelineEnv:
         """
         mask = np.zeros(self.num_nodes, dtype=np.float32)
         
+        idx = {n:i for i,n in enumerate(self.pipeline_nodes)}
         if self.current_step == 0:
-            # 第一步仅允许选择N2 (index 0) / First step: only N2 allowed
-            mask[0] = 1.0
-        elif self.current_step == self.num_nodes - 1:
-            # 最后一步仅允许选择N5 (index最后) / Last step: only N5 allowed
-            mask[-1] = 1.0
+            mask[idx['N0']] = 1.0
+        elif self.current_step == 1:
+            mask[idx['N2']] = 1.0
         else:
-            # 中间步骤：禁止N2和N5，其他未访问节点可选 / Middle steps: disallow N2 and N5
-            mask[:] = 1.0
-            mask[0] = 0.0  # N2 done
-            mask[-1] = 0.0 # N5 reserved for last
-            for i in range(self.num_nodes):
-                if self.node_visited[i]:
-                    mask[i] = 0.0
+            v8 = self.node_visited[idx['N8']]
+            v9 = self.node_visited[idx['N9']]
+            if v8 and not v9:
+                # After training, only allow termination
+                mask[idx['N9']] = 1.0
+            else:
+                # Middle phase: allow any unvisited middle nodes
+                for n in ['N1','N3','N4','N5','N6','N7']:
+                    i = idx[n]
+                    if not self.node_visited[i]:
+                        mask[i] = 1.0
+                # Also allow jumping to training (N8) at any time after N2
+                if not v8:
+                    mask[idx['N8']] = 1.0
         return mask
 
     def select_node(self, node_action: Dict[str, Any]) -> bool:
@@ -181,15 +212,10 @@ class PipelineEnv:
         if method_idx is None or method_idx < 0 or method_idx >= len(methods):
             return False
             
-        # Check if this select_node operation is valid for current step
-        if self.current_step == 0 and node_name != 'N2':
-            return False  # First select_node must be N2
-        elif self.current_step == self.num_nodes - 1 and node_name != 'N5':
-            return False  # Last select_node must be N5
-        elif self.current_step > 0 and self.current_step < self.num_nodes - 1:
-            if node_name in ['N2', 'N5']:
-                return False  # Middle steps cannot select_node N2 or N5
-                
+        # Enforce by mask
+        if self._compute_action_mask()[node_idx] <= 0.0:
+            return False
+
         if self.node_visited[node_idx]:
             return False  # Cannot select_node already visited node
             
@@ -224,11 +250,12 @@ class PipelineEnv:
         
         if self.current_step == 0:
             self.pipeline_config = {
-                'sequence': ['N0', node_name],
+                'sequence': ['N0'],
                 'N0_method': 'api', 
                 'N0_params': {}
             }
         else:
+            # Append selected node name after the first step
             if 'sequence' in self.pipeline_config:
                 self.pipeline_config['sequence'].append(node_name)
             
@@ -237,37 +264,44 @@ class PipelineEnv:
             params_dict = {'param': float(params[0])}
             self.pipeline_config[f'{node_name}_params'] = params_dict  
             
-        print("[ENV] Config so far:", self.pipeline_config)
+        if self.debug:
+            print("[ENV] Config so far:", self.pipeline_config)
 
-        # 3. 只有最后一步才运行pipeline / Only run pipeline on last step
+        # 3. 触发终止时运行pipeline / Run pipeline when N9 is chosen
         reward = 0.0
         done = False
         metrics = {}
-        
-        if self.current_step == self.num_nodes - 1:
+
+        if node_name == 'N9':
             try:
-                outputs = run_pipeline(**self.pipeline_config, verbose=False) # type: ignore
+                from pipeline import run_pipeline_config
+                outputs = run_pipeline_config(**self.pipeline_config)  # type: ignore
                 metrics = outputs.get('metrics', {}) if outputs else {}
-                
+
                 # 计算奖励 / Calculate reward
                 mae = metrics.get('mae_fe_test', 0.0) or 0.0
                 r2 = metrics.get('r2_fe_test', 0.0) or 0.0
-                
-                # 复杂度惩罚 / Complexity penalty
+
+                # 复杂度惩罚 / Complexity penalty (use last method)
                 complexity_penalty = self._get_complexity_penalty(method_name)
                 reward = r2 - mae - complexity_penalty
-                
+
                 # 重复方法惩罚 / Repeated method penalty
                 if self.method_calls[method_name] > 1:
                     reward -= 0.5
-                    
+
                 done = True
-                
-                # 更新指纹 / Update fingerprint
+
+                # 更新指纹 / Update fingerprint (sizes from outputs)
+                n_feats = 0
+                try:
+                    n_feats = int(outputs.get('sizes', {}).get('n_features', 0)) if outputs else 0
+                except Exception:
+                    n_feats = 0
                 self.fingerprint = np.array([
-                    mae, r2, len(outputs.get('feature_names', []) if outputs else [])
+                    mae, r2, n_feats
                 ], dtype=np.float32)
-                
+
             except Exception as e:
                 print(f"Pipeline failed: {e}")
                 reward = -1.0
@@ -329,7 +363,7 @@ def evaluate_pipeline_config(config: Dict[str, Any]) -> Dict[str, float]:
     Evaluate performance of a pipeline configuration
     """
     try:
-        outputs = run_pipeline(**config, verbose=False)
+        outputs = run_pipeline_config(**config) # type: ignore
         metrics = outputs.get('metrics', {}) if outputs else {}
         
         return {

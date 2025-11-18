@@ -20,20 +20,48 @@ def _get_catboost_regressor():
         return None
 
 # Sub-functions for hyperparameter extraction and model fitting
-def extract_search_param(params, default_dict):
+from typing import Optional
+
+def extract_search_param(params: dict, default_values: dict, range_dict: Optional[dict] = None) -> dict:
     """
-    用于RL自动化超参映射：用 param ∈ [0,1] 动态设置参数区间。
+    Map a normalized 'param' in [0,1] to concrete hyperparameters using a range dict.
+
+    - params: may contain 'param' (float in [0,1]) and/or explicit overrides (e.g., n_estimators=120).
+    - default_values: fallback values when no mapping applies.
+    - range_dict: {key: (low, high)} numeric ranges to map 'param' onto.
+
+    Returns a new dict of resolved hyperparameters.
     """
-    default_dict = default_dict.copy()  # Create a copy to avoid modifying the original dictionary
-    if 'param' in params:
-        p = params['param']
-        for key, (low, high) in default_dict.items():
-            val = low + p * (high - low)
-            if isinstance(low, int):
-                default_dict[key] = int(val)
-            else:
-                default_dict[key] = val
-    return default_dict
+    dv = dict(default_values) if isinstance(default_values, dict) else {}
+    p = None
+    if isinstance(params, dict) and 'param' in params:
+        try:
+            p = float(params['param'])
+            if p < 0: p = 0.0
+            if p > 1: p = 1.0
+        except Exception:
+            p = None
+    # Apply global mapping only when range_dict provided
+    if p is not None and range_dict:
+        for key, default_val in list(dv.items()):
+            if key in range_dict:
+                low, high = range_dict[key]
+                # Skip if any bound is None
+                if low is None or high is None:
+                    continue
+                val = low + p * (high - low)
+                # Int-cast if both bounds are ints
+                if isinstance(low, int) and isinstance(high, int):
+                    dv[key] = int(round(val))
+                else:
+                    dv[key] = float(val)
+    # Explicit overrides take precedence
+    if isinstance(params, dict):
+        for k, v in params.items():
+            if k == 'param':
+                continue
+            dv[k] = v
+    return dv
 
 def model_fit(model, data):
     return model.fit(data['X_train'], data['y_train'])
@@ -43,27 +71,43 @@ def model_predict(model, data, key='X_val'):
 
 # =========== 拆分后合并的标准 pipeline 封装 ===========
 def fit_and_predict(model, data, model_name, best_params=None, search_results=None):
-    model_fit(model, data)
-    y_val_pred  = model_predict(model, data, 'X_val')
-    y_test_pred = model_predict(model, data, 'X_test')
-    joblib.dump(model, os.path.join(MODEL_DIR, f"formation_energy_{model_name}.joblib"))
-    if search_results is not None:
-        joblib.dump(search_results, os.path.join(LOG_DIR, f"{model_name}_rs_results_{datetime.now().strftime('%Y%m%d%H%M%S')}.joblib"))
-    return {
-        'model': model,
-        'params': best_params,
-        'y_val_pred': y_val_pred,
-        'y_test_pred': y_test_pred,
-        'X_train': data['X_train'], 'X_val': data['X_val'], 'X_test': data['X_test'],
-        'y_train': data['y_train'], 'y_val': data['y_val'], 'y_test': data['y_test'],
-    }
+    import logging
+    logger = logging.getLogger(__name__)
+    y_val_pred, y_test_pred = None, None
+    try:
+        model_fit(model, data)
+        y_val_pred  = model_predict(model, data, 'X_val')
+        y_test_pred = model_predict(model, data, 'X_test')
+        joblib.dump(model, os.path.join(MODEL_DIR, f"formation_energy_{model_name}.joblib"))
+        if search_results is not None:
+            joblib.dump(search_results, os.path.join(LOG_DIR, f"{model_name}_rs_results_{datetime.now().strftime('%Y%m%d%H%M%S')}.joblib"))
+        return {
+            'model': model,
+            'params': best_params,
+            'y_val_pred': y_val_pred,
+            'y_test_pred': y_test_pred,
+            'X_train': data.get('X_train'), 'X_val': data.get('X_val'), 'X_test': data.get('X_test'),
+            'y_train': data.get('y_train'), 'y_val': data.get('y_val'), 'y_test': data.get('y_test'),
+        }
+    except Exception as e:
+        logger.error(f"Model training or prediction failed for {model_name}: {e}")
+        # 保证异常时输出所有字段
+        return {
+            'model': model,
+            'params': best_params,
+            'y_val_pred': None,
+            'y_test_pred': None,
+            'X_train': data.get('X_train'), 'X_val': data.get('X_val'), 'X_test': data.get('X_test'),
+            'y_train': data.get('y_train'), 'y_val': data.get('y_val'), 'y_test': data.get('y_test'),
+            'error': str(e)
+        }
 
 
 # ========== 1. 随机森林 ==========
 def train_rf(data, n_estimators=100, max_depth=None, random_search=False, **params):
     param_range = {'n_estimators': (50, 200), 'max_depth': (3, 13)}
     default_param = {'n_estimators': n_estimators, 'max_depth': max_depth}
-    default_param = extract_search_param(params, default_param)
+    default_param = extract_search_param(params, default_param, param_range)
     if random_search:
         param_dist = {'n_estimators': [50, 100, 200], 'max_depth': [3, 6, 10, 13],
                       'min_samples_split': [2, 5, 10], 'min_samples_leaf': [1, 2, 4]}
@@ -83,7 +127,7 @@ def train_rf(data, n_estimators=100, max_depth=None, random_search=False, **para
 def train_gbr(data, n_estimators=100, learning_rate=0.1, max_depth=3, random_search=False, **params):
     param_range = {'n_estimators': (50, 200), 'max_depth': (3, 10), 'learning_rate': (0.05, 0.2)}
     default_param = {'n_estimators': n_estimators, 'max_depth': max_depth, 'learning_rate': learning_rate}
-    default_param = extract_search_param(params, default_param)
+    default_param = extract_search_param(params, default_param, param_range)
     if random_search:
         param_dist = {'n_estimators': [50, 100, 200], 'learning_rate': [0.05, 0.1, 0.2], 'max_depth': [3, 6, 10]}
         rs = RandomizedSearchCV(GradientBoostingRegressor(random_state=42),
@@ -102,7 +146,7 @@ def train_gbr(data, n_estimators=100, learning_rate=0.1, max_depth=3, random_sea
 def train_lgbm(data, n_estimators=100, num_leaves=31, learning_rate=0.1, random_search=False, **params):
     param_range = {'n_estimators': (50, 200), 'num_leaves': (31, 100), 'learning_rate': (0.05, 0.2)}
     default_param = {'n_estimators': n_estimators, 'num_leaves': num_leaves, 'learning_rate': learning_rate}
-    default_param = extract_search_param(params, default_param)
+    default_param = extract_search_param(params, default_param, param_range)
     if random_search:
         param_dist = {'n_estimators': [50, 100, 200], 'num_leaves': [31, 50, 100],
                       'learning_rate': [0.05, 0.1, 0.2], 'max_depth': [-1, 5, 10]}
@@ -122,7 +166,7 @@ def train_lgbm(data, n_estimators=100, num_leaves=31, learning_rate=0.1, random_
 def train_xgb(data, n_estimators=100, max_depth=6, learning_rate=0.1, random_search=False, **params):
     param_range = {'n_estimators': (50, 200), 'max_depth': (3, 10), 'learning_rate': (0.05, 0.2)}
     default_param = {'n_estimators': n_estimators, 'max_depth': max_depth, 'learning_rate': learning_rate}
-    default_param = extract_search_param(params, default_param)
+    default_param = extract_search_param(params, default_param, param_range)
     if random_search:
         param_dist = {'n_estimators': [50, 100, 200], 'max_depth': [3, 6, 10],
                       'learning_rate': [0.05, 0.1, 0.2], 'subsample': [0.8, 1.0]}
@@ -142,26 +186,50 @@ def train_xgb(data, n_estimators=100, max_depth=6, learning_rate=0.1, random_sea
 def train_cat(data, iterations=100, depth=6, learning_rate=0.1, random_search=False, **params):
     param_range = {'iterations': (50, 200), 'depth': (4, 10), 'learning_rate': (0.05, 0.2)}
     default_param = {'iterations': iterations, 'depth': depth, 'learning_rate': learning_rate}
-    default_param = extract_search_param(params, default_param)
-    
+    default_param = extract_search_param(params, default_param, param_range)
     CatBoostRegressor = _get_catboost_regressor()
     if CatBoostRegressor is None:
-        raise ImportError("CatBoost is not available")
-    
-    if random_search:
-        param_dist = {'iterations': [50, 100, 200], 'depth': [4, 6, 10],
-                      'learning_rate': [0.05, 0.1, 0.2]}
-        rs = RandomizedSearchCV(CatBoostRegressor(silent=True, random_state=42), # type: ignore
-                                param_distributions=param_dist,
-                                n_iter=10, cv=3, scoring="neg_mean_absolute_error", random_state=42, n_jobs=-1)
-        rs.fit(data['X_train'], data['y_train'])
-        model = rs.best_estimator_
-        best_params = rs.best_params_
-        return fit_and_predict(model, data, 'cat', best_params, rs.cv_results_)
-    else:
-        model = CatBoostRegressor(**default_param, silent=True, random_state=42)
-        best_params = default_param
-        return fit_and_predict(model, data, 'cat', best_params)
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error("CatBoost is not available")
+        # 兜底输出所有字段
+        return {
+            'model': None,
+            'params': default_param,
+            'y_val_pred': None,
+            'y_test_pred': None,
+            'X_train': data.get('X_train'), 'X_val': data.get('X_val'), 'X_test': data.get('X_test'),
+            'y_train': data.get('y_train'), 'y_val': data.get('y_val'), 'y_test': data.get('y_test'),
+            'error': 'CatBoost is not available'
+        }
+    try:
+        if random_search:
+            param_dist = {'iterations': [50, 100, 200], 'depth': [4, 6, 10],
+                          'learning_rate': [0.05, 0.1, 0.2]}
+            rs = RandomizedSearchCV(CatBoostRegressor(silent=True, random_state=42), # type: ignore
+                                    param_distributions=param_dist,
+                                    n_iter=10, cv=3, scoring="neg_mean_absolute_error", random_state=42, n_jobs=-1)
+            rs.fit(data['X_train'], data['y_train'])
+            model = rs.best_estimator_
+            best_params = rs.best_params_
+            return fit_and_predict(model, data, 'cat', best_params, rs.cv_results_)
+        else:
+            model = CatBoostRegressor(**default_param, silent=True, random_state=42)
+            best_params = default_param
+            return fit_and_predict(model, data, 'cat', best_params)
+    except Exception as e:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"CatBoost training failed: {e}")
+        return {
+            'model': None,
+            'params': default_param,
+            'y_val_pred': None,
+            'y_test_pred': None,
+            'X_train': data.get('X_train'), 'X_val': data.get('X_val'), 'X_test': data.get('X_test'),
+            'y_train': data.get('y_train'), 'y_val': data.get('y_val'), 'y_test': data.get('y_test'),
+            'error': str(e)
+        }
 
 
 # ========================= 指标计算和结果输出函数 / Metrics and Results Functions =========================
@@ -182,60 +250,77 @@ def compute_metrics_and_sizes(
     import pandas as pd
     from datetime import datetime
     
-    # ---------- 1) 校验必须的预测结果 ----------
-    required_pred_keys = ['y_val', 'y_val_pred']
-    missing_keys = [key for key in required_pred_keys if key not in state]
-    if missing_keys:
-        raise KeyError(f"缺少预测结果: {missing_keys} / Missing prediction results: {missing_keys}")
+    try:
+        # ---------- 1) 校验必须的预测结果 ----------
+        required_pred_keys = ['y_val', 'y_val_pred']
+        missing_keys = [key for key in required_pred_keys if key not in state]
+        if missing_keys:
+            raise KeyError(f"缺少预测结果: {missing_keys} / Missing prediction results: {missing_keys}")
 
-    # ---------- 2) Non-Fe 验证集指标 ----------
-    y_non_fe, y_pred_non_fe = state['y_val'], state['y_val_pred']
-    mae_non_fe = mean_absolute_error(y_non_fe, y_pred_non_fe)
-    r2_non_fe  = r2_score(y_non_fe, y_pred_non_fe)
+        # ---------- 2) Non-Fe 验证集指标 ----------
+        y_non_fe, y_pred_non_fe = state['y_val'], state['y_val_pred']
+        mae_non_fe = mean_absolute_error(y_non_fe, y_pred_non_fe)
+        r2_non_fe  = r2_score(y_non_fe, y_pred_non_fe)
 
-    # ---------- 3) Fe 测试集指标（可选） ----------
-    y_fe, y_pred_fe = state.get('y_test'), state.get('y_test_pred')
-    if isinstance(y_fe, (list, np.ndarray)) and isinstance(y_pred_fe, (list, np.ndarray)) \
-            and len(y_fe) > 0 and len(y_pred_fe) > 0:
-        mae_fe = mean_absolute_error(y_fe, y_pred_fe)
-        r2_fe  = r2_score(y_fe, y_pred_fe)
-    else:
-        mae_fe = r2_fe = None
+        # ---------- 3) Fe 测试集指标（可选） ----------
+        y_fe, y_pred_fe = state.get('y_test'), state.get('y_test_pred')
+        if isinstance(y_fe, (list, np.ndarray)) and isinstance(y_pred_fe, (list, np.ndarray)) \
+                and len(y_fe) > 0 and len(y_pred_fe) > 0:
+            mae_fe = mean_absolute_error(y_fe, y_pred_fe)
+            r2_fe  = r2_score(y_fe, y_pred_fe)
+        else:
+            mae_fe = r2_fe = None
 
-    # ---------- 4) 数据集大小统计 ----------
-    def safe_len(obj) -> int:
-        """对 None、标量或其他无 __len__ 的对象返回 0。"""
-        try:
-            return len(obj) if obj is not None else 0
-        except Exception:
-            return 0
+        # ---------- 4) 数据集大小统计 ----------
+        def safe_len(obj) -> int:
+            """对 None、标量或其他无 __len__ 的对象返回 0。"""
+            try:
+                return len(obj) if obj is not None else 0
+            except Exception:
+                return 0
 
-    sizes = {
-        'total_non_fe': safe_len(state.get('train_df')),
-        'non_fe_train': safe_len(state.get('y_train')),
-        'non_fe_test' : safe_len(state.get('y_val')),
-        'total_fe'    : safe_len(state.get('test_df')),
-        'n_features'  : (
-            state['X_train'].shape[1]
-            if isinstance(state.get('X_train'), (pd.DataFrame, np.ndarray))
-            else 0
-        )
-    }
+        sizes = {
+            'total_non_fe': safe_len(state.get('train_df')),
+            'non_fe_train': safe_len(state.get('y_train')),
+            'non_fe_test' : safe_len(state.get('y_val')),
+            'total_fe'    : safe_len(state.get('test_df')),
+            'n_features'  : (
+                state['X_train'].shape[1]
+                if isinstance(state.get('X_train'), (pd.DataFrame, np.ndarray))
+                else 0
+            )
+        }
 
-    # ---------- 5) 组织指标字典 ----------
-    metrics = {
-        'mae_non_fe_test': mae_non_fe,
-        'r2_non_fe_test' : r2_non_fe,
-        'mae_fe_test'    : mae_fe,
-        'r2_fe_test'     : r2_fe,
-        'run_time_sec'   : time.time() - start_time,
-        'sequence'       : sequence,
-        'timestamp'      : datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-        'execution_times': execution_times,
-        'total_execution_time': sum(execution_times.values())
-    }
+        # ---------- 5) 组织指标字典 ----------
+        metrics = {
+            'mae_non_fe_test': mae_non_fe,
+            'r2_non_fe_test' : r2_non_fe,
+            'mae_fe_test'    : mae_fe,
+            'r2_fe_test'     : r2_fe,
+            'run_time_sec'   : time.time() - start_time,
+            'sequence'       : sequence,
+            'timestamp'      : datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            'execution_times': execution_times,
+            'total_execution_time': sum(execution_times.values())
+        }
 
-    return metrics, sizes
+        return metrics, sizes
+    except Exception as e:
+        # Robust fallback
+        import time as _t
+        metrics = {
+            'mae_non_fe_test': None,
+            'r2_non_fe_test' : None,
+            'mae_fe_test'    : None,
+            'r2_fe_test'     : None,
+            'run_time_sec'   : _t.time() - start_time,
+            'sequence'       : sequence,
+            'timestamp'      : datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            'execution_times': execution_times,
+            'total_execution_time': sum(execution_times.values()),
+            'error': str(e),
+        }
+        return metrics, {}
 
 
 def print_results(metrics: dict, sizes: dict) -> None:

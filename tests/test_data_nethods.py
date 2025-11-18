@@ -11,6 +11,7 @@ import pytest
 import numpy as np
 from pathlib import Path
 
+methods_data_loaded = False
 import methods.data_methods as dm
 from config import PROC_DIR, CACHE_FILE
 
@@ -25,11 +26,25 @@ def setup_and_teardown(tmp_path, monkeypatch):
     yield
     # 清理
 
+class X:
+    """Picklable dummy composition with stable as_dict per instance."""
+    def __init__(self, fe: int):
+        self._fe = int(fe)
+
+    def as_dict(self):
+        return {"Fe": self._fe}
+
+class DummyComp:
+    """Picklable dummy composition with stable as_dict per instance."""
+    def __init__(self, fe: int):
+        self._fe = int(fe)
+    def as_dict(self):
+        return {'Fe': self._fe}
 
 def make_dummy_df(n: int = 10) -> pd.DataFrame:
-    # 构造简易 DataFrame
+    # 构造简易 DataFrame（composition 使用可 picklable 的对象，并且正确携带 Fe 值）
     data = {
-        'composition': [type('X', (), {'as_dict': lambda self: {'Fe': i % 2}})() for i in range(n)],
+        'composition': [X(i % 2) for i in range(n)],
         'structure': [None] * n,
         dm.TARGET_PROP: np.arange(n)
     }
