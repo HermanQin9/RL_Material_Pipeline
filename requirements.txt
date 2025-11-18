@@ -1,6 +1,9 @@
 # Core dependencies for MatFormPPO project
 # Production requirements for materials science ML pipeline
 
+# Python Compatibility
+typing-extensions>=4.6.0
+
 # Scientific Computing
 numpy>=1.21.0
 pandas>=1.3.0
