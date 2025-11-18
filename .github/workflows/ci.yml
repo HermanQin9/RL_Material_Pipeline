@@ -36,9 +36,11 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip setuptools wheel
-        pip install -r requirements.txt || echo "Some requirements failed, continuing..."
+        pip install numpy pandas scikit-learn
+        pip install torch --index-url https://download.pytorch.org/whl/cpu
+        pip install xgboost lightgbm catboost
+        pip install pymatgen>=2024.0.0 matminer>=0.9.0 mp-api>=0.41.0
         pip install -r requirements-dev.txt
-      continue-on-error: false
         
     - name: Create logs directory (Ubuntu)
       if: runner.os == 'Linux'
@@ -55,7 +57,8 @@ jobs:
         python -c "import sys; print('Python path:', sys.path)"
         python -c "import numpy, pandas, sklearn, torch; print('Core imports OK')"
         python -c "import xgboost, lightgbm, catboost; print('ML models OK')"
-        python -c "try: import torch_geometric; print('PyG: Available')\nexcept ImportError: print('PyG: Using fallback')"
+        python -c "import pymatgen, matminer; print('Materials science packages OK')"
+      continue-on-error: false
         
     - name: Run core module tests
       run: |
