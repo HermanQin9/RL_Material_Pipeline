@@ -151,12 +151,8 @@ def gnn_process(data: Dict[str, Any], strategy: str = 'gcn', param: Optional[flo
 	
 	如果未安装PyTorch Geometric，则使用统计特征备用方案。
 	"""
-	try:
-		from methods.gnn_processing import gnn_process as gnn_process_full
-		return gnn_process_full(data, strategy=strategy, param=param, params=params)
-	except ImportError:
-		# 备用方案：统计特征
-		return _gnn_fallback_statistical(data, param)
+	from methods.gnn_processing import gnn_process as gnn_process_full
+	return gnn_process_full(data, strategy=strategy, param=param, params=params)
 
 
 def _gnn_fallback_statistical(data: Dict[str, Any], param: Optional[float] = None) -> Dict[str, Any]:
@@ -200,12 +196,14 @@ def _gnn_fallback_statistical(data: Dict[str, Any], param: Optional[float] = Non
 
 
 def kg_process(data: Dict[str, Any], strategy: str = 'none', params: Optional[dict] = None) -> Dict[str, Any]:
-	# Placeholder: currently no-op for any strategy
-	# 保证输出所有字段，补全y_val_pred/y_test_pred等
-	result = clean_none(data)
-	result.setdefault('y_val_pred', None)
-	result.setdefault('y_test_pred', None)
-	return result
+	"""
+	N5节点：知识图谱处理
+	
+	调用完整的KG实现模块（methods/kg_processing.py）
+	支持entity、relation等知识增强策略。
+	"""
+	from methods.kg_processing import kg_process as kg_process_full
+	return kg_process_full(data, strategy=strategy, params=params)
 
 
 def terminate(data: Dict[str, Any], **_kwargs) -> Dict[str, Any]:
