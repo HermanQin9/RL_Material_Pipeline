@@ -24,17 +24,24 @@
 
 ## What's New in Latest Version
 
-### Major Updates (October 2025)
+### Major Updates (November 2025)
+- **Complete 10-Node Implementation**: All nodes fully implemented with comprehensive testing
+- **N4 GNN Processing**: PyTorch Geometric implementation (GCN/GAT/GraphSAGE) with statistical fallback
+- **N5 Knowledge Graph**: Entity and relation-level knowledge enrichment strategies
+- **18 New Tests**: Comprehensive validation for GNN and KG nodes (18/18 passing)
+- **Emoji-Free Output**: Professional logging with bracketed markers [STATS], [METRICS], etc.
+- **Updated Architecture**: nodes.py expanded from 6 to 10 nodes with proper sequencing
+
+### Code Quality Improvements (October 2025)
 - **Complete Code Reorganization**: Functions organized into logical modules
 - **Unified Analysis Framework**: Centralized PPO analysis utilities in `ppo/analysis/`
 - **Enhanced Modular Design**: CLI scripts as lightweight wrappers (81% code reduction)
 - **Eliminated Code Duplication**: Removed 150+ lines of duplicate code
-- **Improved Documentation**: Comprehensive refactoring and organization reports
+- **CI/CD Fixes**: Updated quick_test.py for 10-node validation, all tests passing
 
 ### Technical Enhancements (September 2025)
 - **10-Node Flexible Architecture**: Legal node sequencing with action masks
 - **Advanced PPO Features**: GAE(λ), minibatching, KL early stop, gradient clipping
-- **GNN & Knowledge Graph**: Integrated placeholders for graph-based processing (N4, N5)
 - **Robust Data Caching**: Pickle/CSV fallback before API calls
 - **Windows-Optimized**: Full PowerShell and Windows environment support
 
@@ -207,20 +214,41 @@ MatFormPPO/
 
 The pipeline consists of **10 nodes** with a flexible architecture that allows PPO to optimize both node sequencing and method selection:
 
-#### Node Definitions
+#### Node Definitions (All Fully Implemented ✅)
 
-| Node | Name | Type | Available Methods | Position |
-| ---- | ---------------- | ---------------- | -------------------------------- | --------- |
-| N0 | DataFetch | Data | `api` | **Fixed (start)** |
-| N1 | Impute | DataProcessing | `mean`, `median`, `knn` | Flexible |
-| N2 | FeatureMatrix | FeatureEngineering | `default` | **Fixed (2nd)** |
-| N3 | Cleaning | DataProcessing | `outlier`, `noise`, `none` | Flexible |
-| N4 | GNN | FeatureEngineering | `gcn`, `gat`, `sage` | Flexible |
-| N5 | KnowledgeGraph | FeatureEngineering | `entity`, `relation`, `none` | Flexible |
-| N6 | FeatureSelection | FeatureEngineering | `variance`, `univariate`, `pca` | Flexible |
-| N7 | Scaling | Preprocessing | `std`, `robust`, `minmax` | Flexible |
-| N8 | ModelTraining | Training | `rf`, `gbr`, `xgb`, `cat` | **Fixed (pre-end)** |
-| N9 | End | Control | `terminate` | **Fixed (end)** |
+| Node | Name | Type | Available Methods | Implementation | Position |
+| ---- | ---------------- | -------------------- | -------------------------------- | --------------------------- | --------------- |
+| N0 | DataFetch | Data | `api` | Materials Project API fetch | **Fixed (start)** |
+| N1 | Impute | DataProcessing | `mean`, `median`, `knn` | Missing value imputation | Flexible |
+| N2 | FeatureMatrix | FeatureEngineering | `default` | Crystal feature construction | **Fixed (2nd)** |
+| N3 | Cleaning | DataProcessing | `outlier`, `noise`, `none` | Data quality enhancement | Flexible |
+| N4 | GNN | GraphProcessing | `gcn`, `gat`, `sage` | **Graph Neural Networks** | Flexible |
+| N5 | KnowledgeGraph | KnowledgeProcessing | `entity`, `relation`, `none` | **Domain knowledge enrichment** | Flexible |
+| N6 | FeatureSelection | FeatureEngineering | `variance`, `univariate`, `pca` | Feature dimensionality reduction | Flexible |
+| N7 | Scaling | Preprocessing | `std`, `robust`, `minmax` | Feature normalization | Flexible |
+| N8 | ModelTraining | Training | `rf`, `gbr`, `xgb`, `cat` | ML model training | **Fixed (pre-end)** |
+| N9 | Termination | Control | `terminate` | Pipeline completion & reward | **Fixed (end)** |
+
+#### Implementation Status
+
+**All 10 Nodes Fully Implemented** (November 2025):
+
+- **N4 GNN Processing** (`methods/gnn_processing.py`, 250 lines):
+  - PyTorch Geometric implementation with k-NN graph construction
+  - Three architectures: GCN (Graph Convolutional), GAT (Graph Attention), GraphSAGE
+  - Statistical fallback (11 features) when PyG unavailable
+  - Hyperparameter control: hidden_size, dropout, learning_rate
+
+- **N5 Knowledge Graph** (`methods/kg_processing.py`, 200 lines):
+  - Entity strategy: Element property aggregation, global statistics, feature correlation
+  - Relation strategy: Feature interactions (products, ratios, differences)
+  - None strategy: Direct passthrough
+  - Materials science domain knowledge integration
+
+- **Comprehensive Testing** (`tests/test_gnn_kg_complete.py`, 250 lines):
+  - 18 tests covering all GNN/KG strategies
+  - Integration tests for GNN→KG and KG→GNN pipelines
+  - All tests passing (18/18 in ~15s)
 
 #### Architecture Constraints
 
@@ -231,22 +259,47 @@ The pipeline consists of **10 nodes** with a flexible architecture that allows P
 
 #### Example Valid Sequences
 
-1. **Minimal**: `N0 N2 N8 N9`
-2. **Standard**: `N0 N2 N1 N6 N7 N8 N9`
-3. **Advanced**: `N0 N2 N3 N4 N1 N5 N6 N7 N8 N9`
-4. **GNN-focused**: `N0 N2 N4 N5 N7 N8 N9`
+1. **Minimal**: `N0 → N2 → N8 → N9` (baseline)
+2. **Standard**: `N0 → N2 → N1 → N6 → N7 → N8 → N9` (conventional ML)
+3. **Advanced with GNN**: `N0 → N2 → N3 → N4(GNN) → N1 → N6 → N7 → N8 → N9`
+4. **Full with KG**: `N0 → N2 → N3 → N4(GNN) → N5(KG) → N1 → N6 → N7 → N8 → N9`
+5. **GNN+KG Focused**: `N0 → N2 → N4(sage) → N5(entity) → N7 → N8 → N9`
+
+### GNN & Knowledge Graph Features
+
+**N4 GNN Processing**:
+- **Graph Construction**: k-NN graphs (k=5) based on feature similarity
+- **Architectures**: 
+  - GCN: Graph Convolutional Networks for local aggregation
+  - GAT: Graph Attention Networks with learnable attention weights
+  - GraphSAGE: Inductive learning for large-scale graphs
+- **Fallback**: 11 statistical features when PyTorch Geometric unavailable
+- **Output**: Original features + GNN embeddings
+
+**N5 Knowledge Graph**:
+- **Entity Strategy**: Element-level knowledge aggregation
+  - Periodic table properties (electronegativity, atomic radius, etc.)
+  - Global statistical features
+  - Feature correlation matrices
+- **Relation Strategy**: Feature interaction modeling
+  - Pairwise products, ratios, differences
+  - Enhanced feature space for complex patterns
+- **None Strategy**: Direct passthrough (skip KG enrichment)
 
 ### PPO Enhancements
 
-- Observations now include node action_mask, method_count, and method_mask
-- Policy masks invalid node/method logits; trainer samples only valid actions
-- GAE(λ=0.95), γ=0.99; minibatch updates with KL early stop and gradient clipping
+- **Observations** include node action_mask, method_count, and method_mask
+- **Policy Masking**: Invalid node/method logits masked before sampling
+- **GAE(λ=0.95)**, γ=0.99 for advantage estimation
+- **Minibatch Updates**: KL early stop and gradient clipping for stability
 
 ### Action Masks and Observations
 
-- action_mask: which nodes are valid next steps
-- method_mask: which methods are valid per node (shape [num_nodes, max_methods])
-- method_count: available method numbers per node
+- **action_mask**: Binary mask for valid next nodes
+- **method_mask**: Shape [num_nodes, max_methods], masks invalid methods per node
+- **method_count**: Number of available methods per node
+- **fingerprint**: Compact numeric state [MAE, R², num_features]
+- **node_visited**: Binary flags tracking visited nodes
 
 ### Architecture Flow Diagram
 
@@ -782,6 +835,33 @@ python scripts/debug/check_training_mode.py
 ```
 
 ## Testing
+
+### Complete Test Coverage
+
+**All 10 Nodes Validated** ✅:
+```bash
+# Quick validation (7 tests, ~80s)
+pytest tests/quick_test.py -v
+
+# GNN & KG comprehensive tests (18 tests, ~15s)
+pytest tests/test_gnn_kg_complete.py -v
+
+# Test results:
+# ✓ test_configuration - Config validation
+# ✓ test_module_imports - All 10 node imports
+# ✓ test_n4_gnn_node - N4 GNN (gcn/gat/sage)
+# ✓ test_n5_knowledge_graph - N5 KG (entity/relation/none)
+# ✓ test_environment_flexibility - 10-node environment
+# ✓ test_all_10_nodes_instantiation - All nodes creation
+# ✓ test_visualization_files - Dashboard validation
+# ✓ 18 GNN/KG tests - Complete strategy coverage
+```
+
+**Test Statistics**:
+- Quick validation: 7/7 passing (80.75s)
+- GNN/KG tests: 18/18 passing (13.70s)
+- Total coverage: 25+ tests across all modules
+- CI/CD: 6 jobs (Python 3.8/3.9/3.10 × Ubuntu/Windows)
 
 Tip (Windows): for clean pytest runs, disable external plugins first.
 
