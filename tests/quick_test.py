@@ -34,10 +34,11 @@ def test_module_imports():
     from env.pipeline_env import PipelineEnv
     from ppo.trainer import PPOTrainer
     from methods.data_methods import fetch_data, split_by_fe
-    from methods.data.preprocessing import kg_process
+    from methods.data.preprocessing import kg_process, gnn_process, clean_data, terminate
     from nodes import (
-        DataFetchNode, FeatureMatrixNode, ImputeNode,
-        FeatureSelectionNode, ScalingNode, ModelTrainingNode
+        DataFetchNode, FeatureMatrixNode, ImputeNode, CleaningNode,
+        GNNNode, KnowledgeGraphNode, FeatureSelectionNode, 
+        ScalingNode, ModelTrainingNode, TerminationNode
     )
     
     # All imports successful if no exception raised
@@ -74,12 +75,22 @@ def test_n5_knowledge_graph():
 @pytest.mark.quick
 @pytest.mark.integration
 def test_environment_flexibility():
-    """Test flexible pipeline environment"""
+    """Test flexible pipeline environment with 10-node architecture"""
     from env.pipeline_env import PipelineEnv
     
     env = PipelineEnv()
     
     assert len(env.pipeline_nodes) == 10, "Should have 10 nodes"
+    
+    # Verify all 10 node IDs are present
+    expected_node_ids = ['N0', 'N1', 'N2', 'N3', 'N4', 'N5', 'N6', 'N7', 'N8', 'N9']
+    for expected_id in expected_node_ids:
+        assert expected_id in env.pipeline_nodes, f"Missing node: {expected_id}"
+    
+    # Verify methods for each node
+    for node_id in expected_node_ids:
+        assert node_id in env.methods_for_node, f"No methods defined for {node_id}"
+        assert len(env.methods_for_node[node_id]) > 0, f"Node {node_id} has no methods"
     
     obs = env.reset()
     assert obs is not None, "Reset should return observation"
@@ -87,6 +98,65 @@ def test_environment_flexibility():
     
     action_mask = env._compute_action_mask()
     assert action_mask.sum() > 0, "Should have available actions"
+
+
+@pytest.mark.quick
+@pytest.mark.unit
+def test_all_10_nodes_instantiation():
+    """Test that all 10 nodes can be instantiated"""
+    from nodes import (
+        DataFetchNode, ImputeNode, FeatureMatrixNode, CleaningNode,
+        GNNNode, KnowledgeGraphNode, FeatureSelectionNode,
+        ScalingNode, ModelTrainingNode, TerminationNode
+    )
+    
+    nodes = [
+        DataFetchNode(),
+        ImputeNode(),
+        FeatureMatrixNode(),
+        CleaningNode(),
+        GNNNode(),
+        KnowledgeGraphNode(),
+        FeatureSelectionNode(),
+        ScalingNode(),
+        ModelTrainingNode(),
+        TerminationNode()
+    ]
+    
+    # Verify node IDs
+    expected_ids = ['N0', 'N1', 'N2', 'N3', 'N4', 'N5', 'N6', 'N7', 'N8', 'N9']
+    for node, expected_id in zip(nodes, expected_ids):
+        assert node.id == expected_id, f"Expected {expected_id}, got {node.id}"
+    
+    # Verify each node has methods
+    for node in nodes:
+        assert len(node.methods) > 0, f"Node {node.id} has no methods"
+
+
+@pytest.mark.quick
+@pytest.mark.unit
+def test_n4_gnn_node():
+    """Test N4 GNN Node with all strategies"""
+    from methods.data.preprocessing import gnn_process
+    
+    test_data = {
+        'X_train': np.random.rand(20, 10),
+        'y_train': np.random.rand(20),
+        'X_val': np.random.rand(5, 10),
+        'y_val': np.random.rand(5),
+        'feature_names': [f'f{i}' for i in range(10)]
+    }
+    
+    strategies = ['gcn', 'gat', 'sage']
+    for strategy in strategies:
+        result = gnn_process(test_data, strategy=strategy)
+        
+        assert 'X_train' in result, f"X_train missing for {strategy}"
+        assert 'X_val' in result, f"X_val missing for {strategy}"
+        assert result['X_train'].shape[0] == 20, f"Wrong train size for {strategy}"
+        assert result['X_val'].shape[0] == 5, f"Wrong val size for {strategy}"
+        # GNN should add features
+        assert result['X_train'].shape[1] >= test_data['X_train'].shape[1], f"GNN should add features for {strategy}"
 
 
 @pytest.mark.quick
