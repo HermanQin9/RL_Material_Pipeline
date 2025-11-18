@@ -55,7 +55,7 @@ jobs:
         python -c "import sys; print('Python path:', sys.path)"
         python -c "import numpy, pandas, sklearn, torch; print('Core imports OK')"
         python -c "import xgboost, lightgbm, catboost; print('ML models OK')"
-        python -c "try: import torch_geometric; print('PyG: Available'); except: print('PyG: Using fallback')"
+        python -c "try: import torch_geometric; print('PyG: Available')\nexcept ImportError: print('PyG: Using fallback')"
         
     - name: Run core module tests
       run: |
