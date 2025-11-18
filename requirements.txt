@@ -14,6 +14,7 @@ catboost>=1.0.0
 
 # Deep Learning
 torch>=1.10.0
+torch-geometric>=2.0.0
 
 # Materials Science
 pymatgen>=2022.0.0
