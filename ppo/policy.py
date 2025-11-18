@@ -10,119 +10,95 @@ import numpy as np
 
 
 class PPOPolicy(nn.Module):
- """
- PPO Policy Network for Pipeline Optimization
- """
+    """
+    PPO Policy Network for Pipeline Optimization
+    """
+    
+    def __init__(self, obs_dim: int, action_dim: int, hidden_dim: int = 256):
+        super(PPOPolicy, self).__init__()
+        
+        self.obs_dim = obs_dim
+        self.action_dim = action_dim
+        
+        # Shared feature extraction layers
+        self.shared_layers = nn.Sequential(
+            nn.Linear(obs_dim, hidden_dim),
+            nn.ReLU(),
+            nn.Linear(hidden_dim, hidden_dim),
+            nn.ReLU(),
+            nn.Linear(hidden_dim, hidden_dim//2),
+            nn.ReLU()
+        )
+        
+        # Node selection head
+        self.node_head = nn.Sequential(
+            nn.Linear(hidden_dim//2, hidden_dim//4),
+            nn.ReLU(),
+            nn.Linear(hidden_dim//4, 6)  # 6 nodes: N0-N5
+        )
+        
+        # Method selection head  
+        self.method_head = nn.Sequential(
+            nn.Linear(hidden_dim//2, hidden_dim//4),
+            nn.ReLU(),
+            nn.Linear(hidden_dim//4, 10)  # Max methods across all nodes
+        )
+        
+        # Parameter head
+        self.param_head = nn.Sequential(
+            nn.Linear(hidden_dim//2, hidden_dim//4),
+            nn.ReLU(),
+            nn.Linear(hidden_dim//4, 1)  # Single parameter value
+        )
+        
+        # Value head (critic)
+        self.value_head = nn.Sequential(
+            nn.Linear(hidden_dim//2, hidden_dim//4),
+            nn.ReLU(),
+            nn.Linear(hidden_dim//4, 1)
+        )
+        
+    def forward(self, obs, action_mask: Optional[torch.Tensor] = None) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+        """
+        Forward pass through the network
+        
+        Args:
+            obs: Observation (dict or tensor)
+            action_mask: Optional action mask for invalid actions
+            
+        Returns:
+            node_logits: Node selection logits
+            method_logits: Method selection logits  
+            params: Parameter values
+            value: State value estimate
+        """
+        # Handle dict observation format
+        if isinstance(obs, dict):
+            # Flatten dictionary observation to tensor
+            fingerprint = torch.FloatTensor(obs['fingerprint']) if isinstance(obs['fingerprint'], np.ndarray) else obs['fingerprint']
+            node_visited = torch.FloatTensor(obs['node_visited']) if isinstance(obs['node_visited'], np.ndarray) else obs['node_visited']
+            action_mask_tensor = torch.FloatTensor(obs['action_mask']) if isinstance(obs['action_mask'], np.ndarray) else obs['action_mask']
+            
+            # Concatenate all features
+            obs_tensor = torch.cat([fingerprint, node_visited, action_mask_tensor])
+        else:
+            obs_tensor = obs
+        
+        features = self.shared_layers(obs_tensor)
+        
+        # Get node selection logits
+        node_logits = self.node_head(features)
+        
+        # Get method selection logits (simplified - select from all methods)
+        method_logits = self.method_head(features)
+        
+        # Get parameters (simplified - single parameter value)
+        params = torch.sigmoid(self.param_head(features))
+        
+        # Get state value
+        value = self.value_head(features)
+        
+        return node_logits, method_logits, params, value
 
- def __init__(self, obs_dim: int, action_dim: int, hidden_dim: int = 256):
- super(PPOPolicy, self).__init__()
-
- self.obs_dim = obs_dim
- self.action_dim = action_dim
-
- # Shared feature extraction layers
- self.shared_layers = nn.Sequential(
- nn.Linear(obs_dim, hidden_dim),
- nn.ReLU(),
- nn.Linear(hidden_dim, hidden_dim),
- nn.ReLU(),
- nn.Linear(hidden_dim, hidden_dim//2),
- nn.ReLU()
- )
-
- # Node selection head
- self.node_head = nn.Sequential(
- nn.Linear(hidden_dim//2, hidden_dim//4),
- nn.ReLU(),
- nn.Linear(hidden_dim//4, 10) # 10 nodes: N0-N9
- )
-
- # Method selection head 
- self.method_head = nn.Sequential(
- nn.Linear(hidden_dim//2, hidden_dim//4),
- nn.ReLU(),
- nn.Linear(hidden_dim//4, 10) # Max methods across all nodes
- )
-
- # Parameter head
- self.param_head = nn.Sequential(
- nn.Linear(hidden_dim//2, hidden_dim//4),
- nn.ReLU(),
- nn.Linear(hidden_dim//4, 1) # Single parameter value
- )
-
- # Value head (critic)
- self.value_head = nn.Sequential(
- nn.Linear(hidden_dim//2, hidden_dim//4),
- nn.ReLU(),
- nn.Linear(hidden_dim//4, 1)
- )
-
- def forward(self, obs, action_mask: Optional[torch.Tensor] = None) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
- """
- Forward pass through the network
-
- Args:
- obs: Observation (dict or tensor)
- action_mask: Optional action mask for invalid actions
-
- Returns:
- node_logits: Node selection logits
- method_logits: Method selection logits 
- params: Parameter values
- value: State value estimate
- """
- # Handle dict observation format
- if isinstance(obs, dict):
- # Flatten dictionary observation to tensor
- fingerprint = torch.FloatTensor(obs['fingerprint']) if isinstance(obs['fingerprint'], np.ndarray) else obs['fingerprint']
- node_visited = torch.FloatTensor(obs['node_visited']) if isinstance(obs['node_visited'], np.ndarray) else obs['node_visited']
- action_mask_tensor = torch.FloatTensor(obs['action_mask']) if isinstance(obs['action_mask'], np.ndarray) else obs['action_mask']
- method_count = obs.get('method_count')
- method_count_tensor = torch.FloatTensor(method_count) if isinstance(method_count, np.ndarray) else (method_count if method_count is not None else torch.zeros_like(action_mask_tensor))
- method_mask = obs.get('method_mask')
- if isinstance(method_mask, np.ndarray):
- method_mask_tensor = torch.FloatTensor(method_mask.reshape(-1))
- elif method_mask is not None:
- method_mask_tensor = torch.FloatTensor(method_mask).reshape(-1)
- else:
- # default zeros vector with same length as node_visited expanded by max methods, if available
- # fall back to zero-length which will be ignored by cat
- method_mask_tensor = torch.tensor([], dtype=torch.float32)
-
- # Concatenate all features
- # Include method_count as an extra hint channel
- pieces = [fingerprint, node_visited, action_mask_tensor, method_count_tensor]
- if method_mask_tensor.numel() > 0:
- pieces.append(method_mask_tensor)
- obs_tensor = torch.cat(pieces)
- else:
- obs_tensor = obs
-
- features = self.shared_layers(obs_tensor)
-
- # Get node selection logits
- node_logits = self.node_head(features)
- # Apply mask (set invalid logits to large negative)
- if action_mask is None and 'action_mask' in obs if isinstance(obs, dict) else False:
- action_mask = action_mask_tensor # type: ignore
- if action_mask is not None:
- # Assume action_mask shape matches node logits
- mask = action_mask if isinstance(action_mask, torch.Tensor) else torch.tensor(action_mask, dtype=torch.float32)
- # Convert to logits by adding -inf to invalid
- invalid = (mask <= 0).to(node_logits.dtype)
- node_logits = node_logits + (invalid * -1e9)
-
- # Get method selection logits (simplified - select from all methods)
- method_logits = self.method_head(features)
-
- # Get parameters (simplified - single parameter value)
- params = torch.sigmoid(self.param_head(features))
-
- # Get state value
- value = self.value_head(features)
-
- return node_logits, method_logits, params, value
-
- # Note: The following methods are not currently used by the trainer
- # They would need to be updated to work with the new 4-output forward method
+    # Note: The following methods are not currently used by the trainer
+    # They would need to be updated to work with the new 4-output forward method
