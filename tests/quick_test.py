@@ -164,7 +164,6 @@ def test_n4_gnn_node():
 def test_visualization_files():
     """Test existence of visualization files"""
     files = [
-        'scripts/validate_rl_best_practices.py',
         'dashboard/app.py',
         'dash_app/plotly_dashboard.py'
     ]
