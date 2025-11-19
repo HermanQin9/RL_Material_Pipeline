@@ -62,21 +62,24 @@ PROC_PATH = Path(PROC_DIR)
 # Change to the public function
 def split_by_fe(df: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame]:
     """
-    精确分割为300 in-distribution + 100 out-of-distribution样本
-    Split into exactly 300 in-distribution + 100 out-of-distribution samples
+    精确分割为in-distribution和out-of-distribution样本
+    Split into exact in-distribution and out-of-distribution samples
     
-    使用element_based策略：含稀土/贵金属=OOD，常见元素=in-dist
-    Using element_based strategy: rare/noble metals=OOD, common elements=in-dist
+    分割比例和策略可通过环境变量配置：
+    - N_IN_DIST: in-distribution样本数（默认300）
+    - N_OUT_DIST: out-of-distribution样本数（默认100）
+    - SPLIT_STRATEGY: element_based/energy_based/random（默认element_based）
     """
     try:
         from methods.data.splitting import split_in_out_distribution, validate_split
+        from config import N_IN_DIST, N_OUT_DIST, SPLIT_STRATEGY
         
-        # 精确分割为300+100
+        # 使用配置的分割参数
         train_df, test_df = split_in_out_distribution(
             df,
-            n_in_dist=300,
-            n_out_dist=100,
-            strategy='element_based',
+            n_in_dist=N_IN_DIST,
+            n_out_dist=N_OUT_DIST,
+            strategy=SPLIT_STRATEGY,
             target_prop=TARGET_PROP,
             random_state=42
         )

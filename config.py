@@ -37,6 +37,12 @@ TEST_MODE: bool = os.getenv("PIPELINE_TEST", "1") == "1"
 BATCH_SIZE: int = 20 if TEST_MODE else 100
 N_TOTAL: int = 400  # Fixed to 400 points as per advisor requirement
 
+# 数据集分割配置 / Dataset splitting configuration
+# 300 in-distribution + 100 out-of-distribution
+N_IN_DIST: int = int(os.getenv("N_IN_DIST", "300"))
+N_OUT_DIST: int = int(os.getenv("N_OUT_DIST", "100"))
+SPLIT_STRATEGY: str = os.getenv("SPLIT_STRATEGY", "element_based")  # element_based, energy_based, random
+
 # / cache file path
 CACHE_FILE: Path = PROC_DIR / (
  "mp_data_cache_400.pkl"  # Single cache file for 400 samples
@@ -51,5 +57,8 @@ __all__ = [
  "LOG_DIR",
  "BATCH_SIZE",
  "N_TOTAL",
+ "N_IN_DIST",
+ "N_OUT_DIST",
+ "SPLIT_STRATEGY",
  "TARGET_PROP",
 ]
