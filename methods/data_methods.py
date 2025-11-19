@@ -230,7 +230,11 @@ def impute_median(data):
     imp = SimpleImputer(strategy='median')
     return apply_imputer(imp, data)
 
-def impute_knn(data, n_neighbors=5):
+def impute_knn(data, n_neighbors=5, **params):
+    # Map param [0,1] to n_neighbors [3, 10]
+    if 'param' in params:
+        p = params['param']
+        n_neighbors = int(3 + p * 7)
     logger.info("Imputing using KNN, neighbors=%d", n_neighbors)
     imp = KNNImputer(n_neighbors=n_neighbors)
     return apply_imputer(imp, data)

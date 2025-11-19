@@ -20,20 +20,25 @@ def _get_catboost_regressor():
         return None
 
 # Sub-functions for hyperparameter extraction and model fitting
-def extract_search_param(params, default_dict):
+def extract_search_param(params, param_range, default_dict):
     """
     用于RL自动化超参映射：用 param ∈ [0,1] 动态设置参数区间。
+    
+    Args:
+        params: 包含'param'的字典
+        param_range: 参数范围字典 {'param_name': (low, high)}
+        default_dict: 默认参数字典 {'param_name': default_value}
     """
-    default_dict = default_dict.copy()  # Create a copy to avoid modifying the original dictionary
+    result = default_dict.copy()
     if 'param' in params:
         p = params['param']
-        for key, (low, high) in default_dict.items():
+        for key, (low, high) in param_range.items():
             val = low + p * (high - low)
             if isinstance(low, int):
-                default_dict[key] = int(val)
+                result[key] = int(val)
             else:
-                default_dict[key] = val
-    return default_dict
+                result[key] = val
+    return result
 
 def model_fit(model, data):
     return model.fit(data['X_train'], data['y_train'])
@@ -63,7 +68,7 @@ def fit_and_predict(model, data, model_name, best_params=None, search_results=No
 def train_rf(data, n_estimators=100, max_depth=None, random_search=False, **params):
     param_range = {'n_estimators': (50, 200), 'max_depth': (3, 13)}
     default_param = {'n_estimators': n_estimators, 'max_depth': max_depth}
-    default_param = extract_search_param(params, default_param)
+    default_param = extract_search_param(params, param_range, default_param)
     if random_search:
         param_dist = {'n_estimators': [50, 100, 200], 'max_depth': [3, 6, 10, 13],
                       'min_samples_split': [2, 5, 10], 'min_samples_leaf': [1, 2, 4]}
@@ -83,7 +88,7 @@ def train_rf(data, n_estimators=100, max_depth=None, random_search=False, **para
 def train_gbr(data, n_estimators=100, learning_rate=0.1, max_depth=3, random_search=False, **params):
     param_range = {'n_estimators': (50, 200), 'max_depth': (3, 10), 'learning_rate': (0.05, 0.2)}
     default_param = {'n_estimators': n_estimators, 'max_depth': max_depth, 'learning_rate': learning_rate}
-    default_param = extract_search_param(params, default_param)
+    default_param = extract_search_param(params, param_range, default_param)
     if random_search:
         param_dist = {'n_estimators': [50, 100, 200], 'learning_rate': [0.05, 0.1, 0.2], 'max_depth': [3, 6, 10]}
         rs = RandomizedSearchCV(GradientBoostingRegressor(random_state=42),
@@ -102,7 +107,7 @@ def train_gbr(data, n_estimators=100, learning_rate=0.1, max_depth=3, random_sea
 def train_lgbm(data, n_estimators=100, num_leaves=31, learning_rate=0.1, random_search=False, **params):
     param_range = {'n_estimators': (50, 200), 'num_leaves': (31, 100), 'learning_rate': (0.05, 0.2)}
     default_param = {'n_estimators': n_estimators, 'num_leaves': num_leaves, 'learning_rate': learning_rate}
-    default_param = extract_search_param(params, default_param)
+    default_param = extract_search_param(params, param_range, default_param)
     if random_search:
         param_dist = {'n_estimators': [50, 100, 200], 'num_leaves': [31, 50, 100],
                       'learning_rate': [0.05, 0.1, 0.2], 'max_depth': [-1, 5, 10]}
@@ -122,7 +127,7 @@ def train_lgbm(data, n_estimators=100, num_leaves=31, learning_rate=0.1, random_
 def train_xgb(data, n_estimators=100, max_depth=6, learning_rate=0.1, random_search=False, **params):
     param_range = {'n_estimators': (50, 200), 'max_depth': (3, 10), 'learning_rate': (0.05, 0.2)}
     default_param = {'n_estimators': n_estimators, 'max_depth': max_depth, 'learning_rate': learning_rate}
-    default_param = extract_search_param(params, default_param)
+    default_param = extract_search_param(params, param_range, default_param)
     if random_search:
         param_dist = {'n_estimators': [50, 100, 200], 'max_depth': [3, 6, 10],
                       'learning_rate': [0.05, 0.1, 0.2], 'subsample': [0.8, 1.0]}
@@ -142,7 +147,7 @@ def train_xgb(data, n_estimators=100, max_depth=6, learning_rate=0.1, random_sea
 def train_cat(data, iterations=100, depth=6, learning_rate=0.1, random_search=False, **params):
     param_range = {'iterations': (50, 200), 'depth': (4, 10), 'learning_rate': (0.05, 0.2)}
     default_param = {'iterations': iterations, 'depth': depth, 'learning_rate': learning_rate}
-    default_param = extract_search_param(params, default_param)
+    default_param = extract_search_param(params, param_range, default_param)
     
     CatBoostRegressor = _get_catboost_regressor()
     if CatBoostRegressor is None:
