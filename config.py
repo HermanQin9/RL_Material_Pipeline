@@ -1,6 +1,6 @@
-"""项目全局配置 / Global project configuration
+""" / Global project configuration
 
-使用方法:
+:
 >>> from config import API_KEY, CACHE_FILE, PROC_DIR, BATCH_SIZE, N_TOTAL, TARGET_PROP
 """
 
@@ -8,47 +8,58 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
-# ------------------ 根目录与数据路径 Root & Data Paths ------------------
-ROOT_DIR = Path(__file__).resolve().parent  # 项目根目录 / project root
+# ------------------ Root & Data Paths ------------------
+ROOT_DIR = Path(__file__).resolve().parent # / project root
 
-DATA_DIR  = ROOT_DIR / "data"
-RAW_DIR   = DATA_DIR / "raw"
-PROC_DIR  = DATA_DIR / "processed"
+DATA_DIR = ROOT_DIR / "data"
+RAW_DIR = DATA_DIR / "raw"
+PROC_DIR = DATA_DIR / "processed"
 MODEL_DIR = ROOT_DIR / "models"
-LOG_DIR   = ROOT_DIR / "logs"
-DASH_DIR  = ROOT_DIR / "dash_app" / "data"
+LOG_DIR = ROOT_DIR / "logs"
+DASH_DIR = ROOT_DIR / "dash_app" / "data"
 
-# 自动创建目录 / auto‑create folders
+# / auto‑create folders
 for p in (RAW_DIR, PROC_DIR, MODEL_DIR, LOG_DIR, DASH_DIR):
-    p.mkdir(parents=True, exist_ok=True)
+ p.mkdir(parents=True, exist_ok=True)
 
-# ------------------ API 与常量 API & Constants ------------------
-# API Key 可通过环境变量 MP_API_KEY 注入
+# ------------------ API API & Constants ------------------
+# API Key MP_API_KEY 
 API_KEY: str = os.getenv("MP_API_KEY", "f3qtz1d2EV47QfPtknWcFSOXTaUCzNli")
 
-# 预测目标属性 / target property to predict
+# / target property to predict
 TARGET_PROP: str = "formation_energy_per_atom"
 
-# ------------------ Pipeline 运行配置 Runtime Settings ------------------
-# 测试模式开关：环境变量 PIPELINE_TEST=1 时走小数据集
+# ------------------ Pipeline Runtime Settings ------------------
+# PIPELINE_TEST=1 
 TEST_MODE: bool = os.getenv("PIPELINE_TEST", "1") == "1"
 
+# Dataset configuration / 数据集配置
+# Small-scale dataset with 400 samples for efficient research validation
 BATCH_SIZE: int = 20 if TEST_MODE else 100
-N_TOTAL: int   = 200 if TEST_MODE else 4000
+N_TOTAL: int = 400  # Fixed dataset size: 400 materials for research benchmarking
 
-# 缓存文件路径 / cache file path
+# 数据集分割配置 / Dataset splitting configuration
+# 300 in-distribution + 100 out-of-distribution
+N_IN_DIST: int = int(os.getenv("N_IN_DIST", "300"))
+N_OUT_DIST: int = int(os.getenv("N_OUT_DIST", "100"))
+SPLIT_STRATEGY: str = os.getenv("SPLIT_STRATEGY", "element_based")  # element_based, energy_based, random
+
+# / cache file path
 CACHE_FILE: Path = PROC_DIR / (
-    "mp_data_cache_200_test.pkl" if TEST_MODE else "mp_data_cache_4k.pkl"
+ "mp_data_cache_400.pkl"  # Single cache file for 400 samples
 )
 
-# 公开接口 / export
+# / export
 __all__ = [
-    "API_KEY",
-    "CACHE_FILE",
-    "PROC_DIR",
-    "MODEL_DIR",
-    "LOG_DIR",
-    "BATCH_SIZE",
-    "N_TOTAL",
-    "TARGET_PROP",
+ "API_KEY",
+ "CACHE_FILE",
+ "PROC_DIR",
+ "MODEL_DIR",
+ "LOG_DIR",
+ "BATCH_SIZE",
+ "N_TOTAL",
+ "N_IN_DIST",
+ "N_OUT_DIST",
+ "SPLIT_STRATEGY",
+ "TARGET_PROP",
 ]

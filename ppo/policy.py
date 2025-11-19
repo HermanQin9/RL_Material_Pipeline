@@ -30,18 +30,18 @@ class PPOPolicy(nn.Module):
             nn.ReLU()
         )
         
-        # Node selection head
+        # Node selection head - 10 nodes (N0-N9)
         self.node_head = nn.Sequential(
             nn.Linear(hidden_dim//2, hidden_dim//4),
             nn.ReLU(),
             nn.Linear(hidden_dim//4, 10)  # 10 nodes: N0-N9
         )
         
-        # Method selection head  
+        # Method selection head - max 4 methods per node
         self.method_head = nn.Sequential(
             nn.Linear(hidden_dim//2, hidden_dim//4),
             nn.ReLU(),
-            nn.Linear(hidden_dim//4, 10)  # Max methods across all nodes
+            nn.Linear(hidden_dim//4, 4)  # Max 4 methods across all nodes
         )
         
         # Parameter head
@@ -58,65 +58,35 @@ class PPOPolicy(nn.Module):
             nn.Linear(hidden_dim//4, 1)
         )
         
-    def forward(self, obs, action_mask: Optional[torch.Tensor] = None) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+    def forward(self, obs: torch.Tensor, action_mask: Optional[torch.Tensor] = None) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
         """
         Forward pass through the network
         
         Args:
-            obs: Observation (dict or tensor)
-            action_mask: Optional action mask for invalid actions
+            obs: Flattened observation tensor [batch_size, obs_dim]
+            action_mask: Optional action mask for invalid node actions [batch_size, num_nodes]
             
         Returns:
-            node_logits: Node selection logits
-            method_logits: Method selection logits  
-            params: Parameter values
-            value: State value estimate
+            node_logits: Node selection logits [batch_size, num_nodes]
+            method_logits: Method selection logits [batch_size, max_methods]
+            params: Parameter values [batch_size, param_dim]
+            value: State value estimate [batch_size, 1]
         """
-        # Handle dict observation format
-        if isinstance(obs, dict):
-            # Flatten dictionary observation to tensor
-            fingerprint = torch.FloatTensor(obs['fingerprint']) if isinstance(obs['fingerprint'], np.ndarray) else obs['fingerprint']
-            node_visited = torch.FloatTensor(obs['node_visited']) if isinstance(obs['node_visited'], np.ndarray) else obs['node_visited']
-            action_mask_tensor = torch.FloatTensor(obs['action_mask']) if isinstance(obs['action_mask'], np.ndarray) else obs['action_mask']
-            method_count = obs.get('method_count')
-            method_count_tensor = torch.FloatTensor(method_count) if isinstance(method_count, np.ndarray) else (method_count if method_count is not None else torch.zeros_like(action_mask_tensor))
-            method_mask = obs.get('method_mask')
-            if isinstance(method_mask, np.ndarray):
-                method_mask_tensor = torch.FloatTensor(method_mask.reshape(-1))
-            elif method_mask is not None:
-                method_mask_tensor = torch.FloatTensor(method_mask).reshape(-1)
-            else:
-                # default zeros vector with same length as node_visited expanded by max methods, if available
-                # fall back to zero-length which will be ignored by cat
-                method_mask_tensor = torch.tensor([], dtype=torch.float32)
-            
-            # Concatenate all features
-            # Include method_count as an extra hint channel
-            pieces = [fingerprint, node_visited, action_mask_tensor, method_count_tensor]
-            if method_mask_tensor.numel() > 0:
-                pieces.append(method_mask_tensor)
-            obs_tensor = torch.cat(pieces)
-        else:
-            obs_tensor = obs
-        
-        features = self.shared_layers(obs_tensor)
+        # obs is already a flattened tensor from trainer
+        features = self.shared_layers(obs)
         
         # Get node selection logits
         node_logits = self.node_head(features)
-        # Apply mask (set invalid logits to large negative)
-        if action_mask is None and 'action_mask' in obs if isinstance(obs, dict) else False:
-            action_mask = action_mask_tensor  # type: ignore
-        if action_mask is not None:
-            # Assume action_mask shape matches node logits
-            mask = action_mask if isinstance(action_mask, torch.Tensor) else torch.tensor(action_mask, dtype=torch.float32)
-            # Convert to logits by adding -inf to invalid
-            invalid = (mask <= 0).to(node_logits.dtype)
-            node_logits = node_logits + (invalid * -1e9)
         
-        # Get method selection logits (simplified - select from all methods)
+        # Apply action mask if provided (mask invalid nodes)
+        if action_mask is not None:
+            # Set logits of invalid actions to very negative value
+            node_logits = node_logits + (action_mask - 1.0) * 1e8
+        
+        # Get method selection logits
         method_logits = self.method_head(features)
         
-        # Get parameters (simplified - single parameter value)
+        # Get parameters (single parameter value in [0, 1])
         params = torch.sigmoid(self.param_head(features))
         
         # Get state value

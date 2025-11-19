@@ -17,7 +17,7 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from pipeline import run_pipeline, run_pipeline_config
+from pipeline import run_pipeline
 
 
 class PipelineEnv:
@@ -55,7 +55,7 @@ class PipelineEnv:
         self.max_methods = max(len(m) for m in self.methods_for_node.values())
 
         # 只有这些节点使用超参数 / Only these nodes accept a 'param' hyperparameter for node_action
-        self.param_nodes = {'N1', 'N3', 'N6', 'N7', 'N8'}
+        self.param_nodes = {'N1', 'N3', 'N4', 'N6', 'N7', 'N8'}
         self.hyperparam_dim = 1  # 超参数维度 / Dimension of hyperparameter
 
         # 缓存初始化 / Cache initialization

@@ -44,12 +44,16 @@ htmlcov/
 .tox/
 .coverage
 .coverage.*
+!.coveragerc
 .cache
 nosetests.xml
 coverage.xml
 *.cover
 .hypothesis/
 .pytest_cache/
+*.pytest_cache
+.pytest_tmp/
+test-results*/
 
 # Translations
 *.mo
@@ -139,3 +143,5 @@ docs/_build/
 activate_env.bat
 activate_env.ps1
 check_env.py
+
+temp_pkg/

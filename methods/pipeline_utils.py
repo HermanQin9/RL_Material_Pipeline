@@ -31,6 +31,8 @@ class PipelineAPI:
         执行一步 pipeline 并返回新结果
         Execute one pipeline run and return results (for RL step)
         """
+        from pipeline import run_pipeline
+        
         if config:
             self.config.update(config)
         self.last_results = run_pipeline(**self.config)
