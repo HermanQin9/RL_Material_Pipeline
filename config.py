@@ -33,9 +33,10 @@ TARGET_PROP: str = "formation_energy_per_atom"
 # PIPELINE_TEST=1 
 TEST_MODE: bool = os.getenv("PIPELINE_TEST", "1") == "1"
 
-# 老师要求：小规模数据集400个点
+# Dataset configuration / 数据集配置
+# Small-scale dataset with 400 samples for efficient research validation
 BATCH_SIZE: int = 20 if TEST_MODE else 100
-N_TOTAL: int = 400  # Fixed to 400 points as per advisor requirement
+N_TOTAL: int = 400  # Fixed dataset size: 400 materials for research benchmarking
 
 # 数据集分割配置 / Dataset splitting configuration
 # 300 in-distribution + 100 out-of-distribution
