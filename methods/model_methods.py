@@ -11,7 +11,7 @@ from lightgbm import LGBMRegressor
 from config import MODEL_DIR, LOG_DIR
 
 def _get_catboost_regressor():
-    """Dynamic import of CatBoostRegressor to avoid compatibility issues"""
+    """动态导入CatBoost避免兼容性问题 / Dynamic import of CatBoostRegressor to avoid compatibility issues"""
     try:
         from catboost import CatBoostRegressor
         return CatBoostRegressor
@@ -23,11 +23,12 @@ def _get_catboost_regressor():
 def extract_search_param(params, param_range, default_dict):
     """
     用于RL自动化超参映射：用 param ∈ [0,1] 动态设置参数区间。
+    Map RL hyperparameter from [0,1] to actual parameter ranges.
     
     Args:
-        params: 包含'param'的字典
-        param_range: 参数范围字典 {'param_name': (low, high)}
-        default_dict: 默认参数字典 {'param_name': default_value}
+        params: 包含'param'的字典 / Dictionary containing 'param' key
+        param_range: 参数范围字典 {'param_name': (low, high)} / Parameter range dict
+        default_dict: 默认参数字典 {'param_name': default_value} / Default parameter dict
     """
     result = default_dict.copy()
     if 'param' in params:
@@ -41,13 +42,16 @@ def extract_search_param(params, param_range, default_dict):
     return result
 
 def model_fit(model, data):
+    """训练模型 / Train model"""
     return model.fit(data['X_train'], data['y_train'])
 
 def model_predict(model, data, key='X_val'):
+    """模型预测 / Model prediction"""
     return model.predict(data[key]) if data.get(key) is not None else None
 
-# =========== 拆分后合并的标准 pipeline 封装 ===========
+# =========== 拆分后合并的标准 pipeline 封装 / Standard pipeline wrapper for fit and predict ===========
 def fit_and_predict(model, data, model_name, best_params=None, search_results=None):
+    """训练模型并生成预测 / Train model and generate predictions"""
     model_fit(model, data)
     y_val_pred  = model_predict(model, data, 'X_val')
     y_test_pred = model_predict(model, data, 'X_test')

@@ -231,7 +231,15 @@ def impute_median(data):
     return apply_imputer(imp, data)
 
 def impute_knn(data, n_neighbors=5, **params):
-    # Map param [0,1] to n_neighbors [3, 10]
+    """
+    KNN填充缺失值 / KNN imputation for missing values
+    
+    Args:
+        data: 输入数据 / Input data
+        n_neighbors: 邻居数量 / Number of neighbors
+        **params: 包含'param' [0,1]映射到n_neighbors [3,10] / Contains 'param' [0,1] mapped to n_neighbors [3,10]
+    """
+    # Map param [0,1] to n_neighbors [3, 10] / 映射param到邻居数
     if 'param' in params:
         p = params['param']
         n_neighbors = int(3 + p * 7)

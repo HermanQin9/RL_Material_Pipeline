@@ -1,9 +1,11 @@
 name: CI/CD Pipeline
 
 # Automated testing for Python 3.8, 3.9, 3.10 on Ubuntu and Windows
+# 自动化测试支持Python 3.8, 3.9, 3.10在Ubuntu和Windows系统
 on:
   push:
-    branches: [ main, 2025-11-18-flexible-pipeline ]
+    branches:
+      - '**'  # Trigger on all branches / 所有分支都触发CI
   pull_request:
     branches: [ main ]
   workflow_dispatch:
