@@ -61,11 +61,39 @@ PROC_PATH = Path(PROC_DIR)
 
 # Change to the public function
 def split_by_fe(df: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame]:
-    """按是否含 Fe 将数据切分为 train/test"""
-    mask = df["composition"].apply(lambda c: c is not None and c.as_dict().get("Fe", 0) > 0)
-    train_df = df[~mask].reset_index(drop=True)
-    test_df = df[mask].reset_index(drop=True)
-    return train_df, test_df
+    """
+    精确分割为300 in-distribution + 100 out-of-distribution样本
+    Split into exactly 300 in-distribution + 100 out-of-distribution samples
+    
+    使用element_based策略：含稀土/贵金属=OOD，常见元素=in-dist
+    Using element_based strategy: rare/noble metals=OOD, common elements=in-dist
+    """
+    try:
+        from methods.data.splitting import split_in_out_distribution, validate_split
+        
+        # 精确分割为300+100
+        train_df, test_df = split_in_out_distribution(
+            df,
+            n_in_dist=300,
+            n_out_dist=100,
+            strategy='element_based',
+            target_prop=TARGET_PROP,
+            random_state=42
+        )
+        
+        # 验证分割质量
+        stats = validate_split(train_df, test_df, target_prop=TARGET_PROP)
+        logger.info(f"Split validation: {stats['n_in_dist']} in-dist, {stats['n_out_dist']} out-dist")
+        
+        return train_df, test_df
+        
+    except ImportError:
+        # Fallback to old Fe-based splitting
+        logger.warning("New splitting module not available, using legacy Fe-based split")
+        mask = df["composition"].apply(lambda c: c is not None and c.as_dict().get("Fe", 0) > 0)
+        train_df = df[~mask].reset_index(drop=True)
+        test_df = df[mask].reset_index(drop=True)
+        return train_df, test_df
 
 
 def safe_featurize(feat_obj, x):
