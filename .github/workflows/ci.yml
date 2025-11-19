@@ -41,7 +41,10 @@ jobs:
         pip install numpy pandas scikit-learn
         pip install torch --index-url https://download.pytorch.org/whl/cpu
         pip install xgboost lightgbm catboost
-        pip install "pymatgen>=2024.0.0,<2025.0.0" "matminer>=0.9.0" "mp-api>=0.41.0"
+        # Pin versions for compatibility across Python 3.8-3.10
+        # pymatgen<2024.0.0 supports Python 3.8
+        # mp-api<0.40.0 avoids Python 3.11+ typing issues
+        pip install "pymatgen>=2023.0.0,<2024.0.0" "matminer>=0.8.0,<0.9.0" "mp-api>=0.30.0,<0.40.0"
         pip install -r requirements-dev.txt
         
     - name: Create logs directory (Ubuntu)

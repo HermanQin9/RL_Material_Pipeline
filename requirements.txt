@@ -20,9 +20,10 @@ torch>=1.10.0
 torch-geometric>=2.0.0
 
 # Materials Science
-pymatgen>=2024.0.0,<2025.0.0
-matminer>=0.9.0
-mp-api>=0.41.0
+# Pin versions for broad compatibility (Python 3.8-3.10)
+pymatgen>=2023.0.0,<2024.0.0
+matminer>=0.8.0,<0.9.0
+mp-api>=0.30.0,<0.40.0
 
 # Utilities
 joblib>=1.1.0
