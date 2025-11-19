@@ -70,16 +70,34 @@ class PPOTrainer:
         # 训练统计 / Training statistics
         self.episode_rewards = []
         self.episode_lengths = []
+    
+    def _flatten_obs(self, obs: Dict[str, Any]) -> np.ndarray:
+        """
+        将字典观测转换为扁平向量 / Flatten dict observation to flat vector
+        
+        Observation structure:
+        - fingerprint: (3,) [MAE, R2, feature_num]
+        - node_visited: (10,) [N0-N9 visit flags]
+        - action_mask: (10,) [N0-N9 action validity]
+        - method_count: (10,) [normalized method counts per node]
+        - method_mask: (10, max_methods) [valid methods per node]
+        
+        Total dimension: 3 + 10 + 10 + 10 + (10 * max_methods)
+        """
+        parts = [
+            np.array(obs['fingerprint'], dtype=np.float32).flatten(),
+            np.array(obs['node_visited'], dtype=np.float32).flatten(),
+            np.array(obs['action_mask'], dtype=np.float32).flatten(),
+            np.array(obs['method_count'], dtype=np.float32).flatten(),
+            np.array(obs['method_mask'], dtype=np.float32).flatten()
+        ]
+        return np.concatenate(parts)
         
     def _calculate_obs_dim(self, obs: Dict[str, Any]) -> int:
         """计算观察空间维度 / Calculate observation dimension for node_action"""
-        total_dim = 0
-        for key, value in obs.items():
-            if isinstance(value, (list, np.ndarray)):
-                total_dim += len(value)
-            else:
-                total_dim += 1
-        return total_dim
+        # Use actual flattened dimension
+        flat_obs = self._flatten_obs(obs)
+        return len(flat_obs)
     
     def _calculate_action_dim(self, env: PipelineEnv) -> int:
         """计算动作空间维度 / Calculate action dimension for select_node operations"""
@@ -95,7 +113,14 @@ class PPOTrainer:
         Select action based on current observation
         """
         with torch.no_grad():
-            node_logits, method_logits, params, value = self.policy(obs)
+            # Flatten observation dict to tensor
+            obs_flat = self._flatten_obs(obs)
+            obs_tensor = torch.FloatTensor(obs_flat).unsqueeze(0)  # Add batch dim
+            
+            # Get action mask for node selection
+            action_mask = torch.FloatTensor(obs['action_mask']).unsqueeze(0)
+            
+            node_logits, method_logits, params, value = self.policy(obs_tensor, action_mask)
             
             # 节点选择 / Node selection
             node_dist = torch.distributions.Categorical(logits=node_logits)
@@ -197,7 +222,10 @@ class PPOTrainer:
         return returns
 
     def _update_policy(self, observations: List[Dict], actions: List[Dict], old_log_probs: List[Dict], returns: List[float], old_values: List[torch.Tensor]):
-        """PPO策略更新"""
+        """PPO策略更新 / PPO policy update with flattened observations"""
+        # Flatten all observations
+        obs_batch = torch.FloatTensor(np.array([self._flatten_obs(obs) for obs in observations]))
+        action_masks = torch.FloatTensor(np.array([obs['action_mask'] for obs in observations]))
         returns_tensor = torch.tensor(returns, dtype=torch.float32)
         old_values_tensor = torch.stack(old_values)
         
@@ -207,14 +235,15 @@ class PPOTrainer:
         # 多轮更新 / Multiple update epochs
         for _ in range(4):
             for i in range(len(observations)):
-                obs = observations[i]
+                obs_tensor = obs_batch[i:i+1]  # Keep batch dimension
+                action_mask = action_masks[i:i+1]
                 action = actions[i]
                 old_log_prob = old_log_probs[i]
                 advantage = advantages[i]
                 ret = returns_tensor[i]
                 
-                # 重新计算概率 / Recompute probabilities
-                node_logits, method_logits, params, value = self.policy(obs)
+                # 重新计算概率 / Recompute probabilities using flattened observation
+                node_logits, method_logits, params, value = self.policy(obs_tensor, action_mask)
                 
                 # 节点概率 / Node probability
                 node_dist = torch.distributions.Categorical(logits=node_logits)

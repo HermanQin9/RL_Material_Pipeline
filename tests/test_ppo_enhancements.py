@@ -37,7 +37,6 @@ def test_env_observation_has_method_count():
 
 @pytest.mark.ppo
 @pytest.mark.integration
-@pytest.mark.xfail(reason="PPO policy network dimension mismatch with current observation space (1x23 vs 43x64) - requires policy network update")
 def test_trainer_one_episode_runs():
     """Test trainer one episode run
     

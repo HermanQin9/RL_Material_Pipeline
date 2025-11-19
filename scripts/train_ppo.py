@@ -43,28 +43,28 @@ def main():
 
  # Load model if requested
  if args.load_model and os.path.exists(args.model_path):
- trainer.load_model(args.model_path)
- print(f"Loaded model from {args.model_path}")
+     trainer.load_model(args.model_path)
+     print(f"Loaded model from {args.model_path}")
 
  if args.eval_only:
- # Evaluation mode - run a few episodes to test
- print("Running evaluation...")
- trainer.train(num_episodes=5, log_interval=1)
+     # Evaluation mode - run a few episodes to test
+     print("Running evaluation...")
+     trainer.train(num_episodes=5, log_interval=1)
  else:
- # Training mode
- print(f"Starting training for {args.episodes} episodes...")
- trainer.train(
- num_episodes=args.episodes,
- log_interval=args.log_freq
- )
+     # Training mode
+     print(f"Starting training for {args.episodes} episodes...")
+     trainer.train(
+         num_episodes=args.episodes,
+         log_interval=args.log_freq
+     )
 
- # Save model after training
- os.makedirs(os.path.dirname(args.model_path), exist_ok=True)
- trainer.save_model(args.model_path)
- print(f"Model saved to {args.model_path}")
+     # Save model after training
+     os.makedirs(os.path.dirname(args.model_path), exist_ok=True)
+     trainer.save_model(args.model_path)
+     print(f"Model saved to {args.model_path}")
 
  print("Done!")
 
 
 if __name__ == "__main__":
- main()
+    main()
