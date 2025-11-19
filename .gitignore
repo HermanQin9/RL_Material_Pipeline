@@ -143,3 +143,5 @@ docs/_build/
 activate_env.bat
 activate_env.ps1
 check_env.py
+
+temp_pkg/
